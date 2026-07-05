@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<style>
+  .dashboard-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .section-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .vat-config-panel, .mpesa-config-panel {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+
+  /* Staff Table & List */
+  .staff-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    background: var(--bg-surface);
+    transition: all 0.2s ease;
+  }
+
+  .staff-item:hover {
+    box-shadow: var(--shadow-sm);
+    border-color: var(--color-primary);
+  }
+
+  .staff-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .staff-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-main);
+  }
+
+  .staff-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .audit-log-card {
+    grid-column: 1 / -1;
+    margin-top: 24px;
+  }
+
+  .audit-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+  }
+
+  .audit-item {
+    padding: 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .audit-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  .audit-meta {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: auto;
+  }
+
+  @media (max-width: 900px) {
+    .dashboard-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px;">
+  <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em;">Store Administration Settings</h1>
+  <div style="color: var(--text-muted); font-size: 14px;">Manage store branding, tax details, M-Pesa merchant config, and staff access roles.</div>
+</div>
+
+<div class="dashboard-layout">
+  <!-- Left Card: Store Profile & Details -->
+  <div class="card">
+    <div class="section-title">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+      Store Branding & Config
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+      <div class="form-group">
+        <label>Business Name</label>
+        <input name="name" type="text" value="{{ tenant.name }}" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input name="phone" type="text" value="{{ tenant.phone or '' }}">
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input name="email" type="email" value="{{ tenant.email or '' }}">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Business Address</label>
+        <textarea name="address" rows="3" style="resize: none;">{{ tenant.address or '' }}</textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Base Currency</label>
+          <select name="currency">
+            <option value="KES" {% if tenant.currency == 'KES' %}selected{% endif %}>KES (Kenyan Shilling)</option>
+            <option value="USD" {% if tenant.currency == 'USD' %}selected{% endif %}>USD (US Dollar)</option>
+            <option value="EUR" {% if tenant.currency == 'EUR' %}selected{% endif %}>EUR (Euro)</option>
+            <option value="UGX" {% if tenant.currency == 'UGX' %}selected{% endif %}>UGX (Ugandan Shilling)</option>
+            <option value="TZS" {% if tenant.currency == 'TZS' %}selected{% endif %}>TZS (Tanzanian Shilling)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Current Logo</label>
+          {% if tenant.logo_filename %}
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img src="{{ url_for('static', filename='uploads/' ~ tenant.logo_filename) }}" alt="logo" style="height: 38px; width: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 2px;" />
+              <span style="font-size: 11px; color: var(--text-muted)">Stored file</span>
+            </div>
+          {% else %}
+            <span style="font-size: 13px; color: var(--text-muted); padding-top: 8px;">No logo set</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Update Store Logo</label>
+        <input name="logo" type="file" accept="image/*" style="padding: 6px 10px;">
+      </div>
+
+      <!-- VAT Settings Panel -->
+      <div class="vat-config-panel">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+          <input type="checkbox" id="vatEnabledCheckbox" name="vat_enabled" value="y" {% if tenant.vat_enabled %}checked{% endif %} onchange="toggleVatRateInput()" style="width: auto; margin: 0;">
+          <label for="vatEnabledCheckbox" style="font-size: 12px; font-weight: 600; color: var(--text-main); margin: 0; text-transform: uppercase;">Enable Value Added Tax (VAT)</label>
+        </div>
+        <div class="form-group" id="vatRateGroup" style="margin-bottom: 0; {% if not tenant.vat_enabled %}display: none;{% endif %}">
+          <label>VAT Tax Rate (%)</label>
+          <input name="vat_rate" type="number" step="0.01" value="{{ tenant.vat_rate }}" placeholder="e.g. 16.00">
+        </div>
+      </div>
+
+      <!-- M-Pesa Credentials Panel -->
+      <div class="mpesa-config-panel">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+          <input type="checkbox" id="mpesaSimulate" name="mpesa_simulate" value="y" {% if tenant.mpesa_simulate %}checked{% endif %} style="width: auto; margin: 0;">
+          <label for="mpesaSimulate" style="font-size: 12px; font-weight: 600; color: var(--text-main); margin: 0; text-transform: uppercase;">Enable M-Pesa Simulation (STK Push Demo)</label>
+        </div>
+        
+        <div class="form-group">
+          <label>M-Pesa Merchant Shortcode (Till/Paybill)</label>
+          <input name="mpesa_shortcode" type="text" value="{{ tenant.mpesa_shortcode or '' }}" placeholder="e.g. 174379">
+        </div>
+        <div class="form-group">
+          <label>Consumer Key</label>
+          <input name="mpesa_consumer_key" type="password" value="{{ tenant.mpesa_consumer_key or '' }}" placeholder="Client ID from Daraja portal">
+        </div>
+        <div class="form-group">
+          <label>Consumer Secret</label>
+          <input name="mpesa_consumer_secret" type="password" value="{{ tenant.mpesa_consumer_secret or '' }}" placeholder="Client Secret from Daraja portal">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>Lipa Na M-Pesa Online Passkey</label>
+          <input name="mpesa_passkey" type="password" value="{{ tenant.mpesa_passkey or '' }}" placeholder="Passkey for STK Push API">
+        </div>
+      </div>
+
+      <button class="btn" type="submit" style="width: 100%; padding: 12px;">Save Profile &amp; M-Pesa Settings</button>
+    </form>
+  </div>
+
+  <!-- Right Card: Staff Management -->
+  <div class="card">
+    <div class="section-title">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      Staff User Accounts
+    </div>
+
+    <!-- Add Staff Form -->
+    <form method="post" action="{{ url_for('tenant.create_user') }}" style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px dashed var(--border-color);">
+      <h3 style="font-size: 14px; color: var(--color-primary); margin-bottom: 12px;">Create Staff Credentials</h3>
+      
+      <div class="form-group">
+        <label>Full Name</label>
+        <input name="full_name" type="text" placeholder="e.g. Kelvin Kamau" required>
+      </div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input name="email" type="email" placeholder="staff@business.com" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Initial Password</label>
+          <input name="password" type="password" placeholder="••••••••" required>
+        </div>
+        <div class="form-group">
+          <label>Account Role</label>
+          <select name="role">
+            <option value="cashier">Cashier</option>
+            <option value="manager">Store Manager</option>
+            <option value="stock_manager">Stock Manager</option>
+            <option value="viewer">Viewer Only</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn" type="submit" style="width: 100%; padding: 10px;">Create Staff Account</button>
+    </form>
+
+    <!-- Staff Accounts List -->
+    <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-main);">Registered Staff</h3>
+    <div style="max-height: 350px; overflow-y: auto;">
+      {% for u in users %}
+        <div class="staff-item">
+          <div class="staff-details">
+            <span class="staff-name">{{ u.full_name }}</span>
+            <span class="staff-meta">
+              {{ u.email }}
+              <span class="badge {% if u.role == 'owner' %}badge-success{% elif u.role == 'manager' %}badge-info{% else %}badge-warning{% endif %}">{{ u.role }}</span>
+            </span>
+          </div>
+          {% if current_user.role == 'owner' and u.id != current_user.id and u.role != 'owner' %}
+            <form method="post" action="{{ url_for('tenant.delete_user', user_id=u.id) }}" onsubmit="return confirm('Are you sure you want to delete this staff account?');">
+              <button class="btn btn-danger" style="font-size: 11px; padding: 4px 8px;" type="submit">Delete</button>
+            </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Audit Log History Card -->
+  <div class="card audit-log-card">
+    <div class="section-title">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path></svg>
+      Admin Operations Audit Log
+    </div>
+
+    <div class="audit-list">
+      {% if audit_logs|length == 0 %}
+        <div style="font-size: 12px; color: var(--text-muted); grid-column: 1 / -1; text-align: center; padding: 20px 0;">No administrative operations logged yet.</div>
+      {% else %}
+        {% for log in audit_logs %}
+          <div class="audit-item">
+            <div class="audit-header">
+              <span>{{ log.action }}</span>
+              <span style="font-size: 10px; font-weight: normal; color: var(--text-muted);">ID: {{ log.entity_id or 'N/A' }}</span>
+            </div>
+            <div style="color: var(--text-main);">{{ log.detail }}</div>
+            <div class="audit-meta">
+              Logged at {{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleVatRateInput() {
+    const isChecked = document.getElementById('vatEnabledCheckbox').checked;
+    const vatGroup = document.getElementById('vatRateGroup');
+    if (isChecked) {
+      vatGroup.style.display = 'block';
+    } else {
+      vatGroup.style.display = 'none';
+    }
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block head %}
+<style>
+  .po-grid { display: grid; grid-template-columns: 420px 1fr; gap: 24px; align-items: start; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .form-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+  .line-item-row { display: grid; grid-template-columns: 1fr 80px 100px 36px; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .remove-line { width: 36px; height: 36px; border: none; background: #fef2f2; color: var(--color-error); border-radius: var(--radius-sm); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .remove-line:hover { background: var(--color-error); color: #fff; }
+  .po-card { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; }
+  .po-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; }
+  .po-number { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 15px; }
+  .po-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  @media (max-width: 1000px) { .po-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+  <div>
+    <h1 style="font-size: 26px; font-weight: 800; margin: 0;">Purchase Orders</h1>
+    <div style="color: var(--text-muted); font-size: 14px;">Record goods received from suppliers — auto-updates stock</div>
+  </div>
+  <div style="display: flex; gap: 8px;">
+    <a href="{{ url_for('stock.suppliers') }}" class="btn btn-secondary">Suppliers</a>
+    <a href="{{ url_for('stock.adjustments') }}" class="btn btn-secondary">Stock Adjustments</a>
+  </div>
+</div>
+
+<div class="po-grid">
+  <!-- New Purchase Form -->
+  <div class="card">
+    <h2 style="font-size: 16px; margin-bottom: 18px;">Record New Purchase</h2>
+    <form method="post" action="{{ url_for('stock.create_purchase') }}" id="purchaseForm">
+      <div class="form-group">
+        <label>Supplier (Optional)</label>
+        <select name="supplier_id">
+          <option value="">— Walk-in / No Supplier —</option>
+          {% for s in suppliers %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Reference / PO Number</label>
+        <input type="text" name="ref_number" placeholder="e.g. PO-2024-001 (auto-generated if empty)">
+      </div>
+
+      <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Items Received</div>
+      <div id="lineItems">
+        <div class="line-item-row" id="line-0">
+          <select name="product_id_0" required>
+            <option value="">— Select Product —</option>
+            {% for p in products %}
+              <option value="{{ p.id }}">{{ p.name }} ({{ p.stock_on_hand }})</option>
+            {% endfor %}
+          </select>
+          <input type="number" name="qty_0" placeholder="Qty" min="1" required style="text-align:center;">
+          <input type="number" name="unit_cost_0" placeholder="Unit Cost" step="0.01" min="0" required>
+          <button type="button" class="remove-line" onclick="removeLine(0)" style="visibility:hidden;">×</button>
+        </div>
+      </div>
+
+      <div id="lineTotal" style="background: #f0fdf4; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-weight: 700; font-size: 14px; display: none;">
+        Total Cost: KES <span id="totalCost">0.00</span>
+      </div>
+
+      <button type="button" class="btn btn-secondary" onclick="addLine()" style="width: 100%; margin-bottom: 12px;">
+        + Add Another Product
+      </button>
+      <button type="submit" class="btn" style="width: 100%; padding: 12px;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Confirm & Update Stock
+      </button>
+    </form>
+  </div>
+
+  <!-- Purchase History -->
+  <div>
+    <h2 style="font-size: 16px; margin-bottom: 16px;">Purchase History</h2>
+    {% if purchases|length == 0 %}
+      <div class="card" style="text-align: center; padding: 60px 0; color: var(--text-muted);">No purchase orders yet.</div>
+    {% else %}
+      {% for po in purchases %}
+        <div class="po-card">
+          <div class="po-header">
+            <div>
+              <div class="po-number">{{ po.purchase_number }}</div>
+              <div class="po-meta">{{ po.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 700; font-size: 16px; color: var(--color-primary);">KES {{ "{:,.2f}".format(po.total) }}</div>
+              {% if po.supplier %}
+                <div class="po-meta">{{ po.supplier.name }}</div>
+              {% endif %}
+            </div>
+          </div>
+          {% if po.items %}
+            <div style="font-size: 12px; color: var(--text-muted);">
+              {% for item in po.items %}
+                {{ item.product.name if item.product else 'Unknown' }} ×{{ item.quantity }}{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  let lineCount = 1;
+  const productOptions = `{% for p in products %}<option value="{{ p.id }}">{{ p.name }} ({{ p.stock_on_hand }})</option>{% endfor %}`;
+
+  function addLine() {
+    const idx = lineCount++;
+    const row = document.createElement('div');
+    row.className = 'line-item-row';
+    row.id = `line-${idx}`;
+    row.innerHTML = `
+      <select name="product_id_${idx}" required>
+        <option value="">— Select Product —</option>
+        ${productOptions}
+      </select>
+      <input type="number" name="qty_${idx}" placeholder="Qty" min="1" required style="text-align:center;" oninput="calcTotal()">
+      <input type="number" name="unit_cost_${idx}" placeholder="Cost" step="0.01" min="0" required oninput="calcTotal()">
+      <button type="button" class="remove-line" onclick="removeLine(${idx})">×</button>
+    `;
+    document.getElementById('lineItems').appendChild(row);
+    calcTotal();
+  }
+
+  function removeLine(idx) {
+    const row = document.getElementById(`line-${idx}`);
+    if (row) row.remove();
+    calcTotal();
+  }
+
+  function calcTotal() {
+    let total = 0;
+    document.querySelectorAll('[name^="qty_"]').forEach(qtyInput => {
+      const suffix = qtyInput.name.replace('qty_', '');
+      const costInput = document.querySelector(`[name="unit_cost_${suffix}"]`);
+      const qty = parseFloat(qtyInput.value) || 0;
+      const cost = parseFloat(costInput?.value) || 0;
+      total += qty * cost;
+    });
+    const totalEl = document.getElementById('lineTotal');
+    document.getElementById('totalCost').textContent = total.toLocaleString('en-US', {minimumFractionDigits: 2});
+    totalEl.style.display = total > 0 ? 'block' : 'none';
+  }
+
+  // Attach listeners to initial row
+  document.querySelectorAll('#line-0 input').forEach(el => el.addEventListener('input', calcTotal));
+</script>
+{% endblock %}

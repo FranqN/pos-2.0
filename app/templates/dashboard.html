@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<style>
+  .welcome-banner {
+    background: var(--color-primary-gradient);
+    color: #ffffff;
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+  }
+  .welcome-banner::after {
+    content: "";
+    position: absolute;
+    top: -30%;
+    right: -10%;
+    width: 260px;
+    height: 260px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .welcome-banner h1 {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    color: #ffffff;
+  }
+  .welcome-banner p {
+    margin: 0;
+    font-size: 15px;
+    opacity: 0.9;
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .kpi-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 22px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-premium);
+    border-color: var(--color-primary);
+  }
+  .kpi-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--color-primary-gradient);
+  }
+  .kpi-card.success::before {
+    background: var(--color-success);
+  }
+  .kpi-card.warning::before {
+    background: var(--color-warning);
+  }
+  
+  .kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .kpi-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .kpi-icon {
+    opacity: 0.7;
+    color: var(--color-primary);
+  }
+  .kpi-val {
+    font-family: 'Outfit', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-main);
+    line-height: 1.1;
+  }
+  .kpi-trend {
+    font-size: 12px;
+    margin-top: 6px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .kpi-trend.up { color: var(--color-success); }
+  .kpi-trend.down { color: var(--color-error); }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 0.8fr;
+    gap: 24px;
+    margin-bottom: 28px;
+  }
+
+  .quick-links {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .link-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    text-align: center;
+    text-decoration: none;
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    transition: var(--transition-normal);
+  }
+  .link-card:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .link-card svg {
+    color: var(--color-primary);
+  }
+
+  .recent-products-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .recent-product-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+  }
+  .recent-product-name {
+    font-weight: 600;
+  }
+  .recent-product-qty {
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  @media (max-width: 900px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="welcome-banner">
+  <h1>Welcome Back, {{ current_user.full_name }}!</h1>
+  <p>Here is your store summary for today. Everything looks good.</p>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="kpi-header">
+      <span class="kpi-title">Today's Revenue</span>
+      <span class="kpi-icon">💰</span>
+    </div>
+    <div class="kpi-val" id="kpiRevenue">{{ tenant_currency }} 0.00</div>
+    <div class="kpi-trend" id="kpiRevenueTrend">Comparing to yesterday...</div>
+  </div>
+
+  <div class="kpi-card success">
+    <div class="kpi-header">
+      <span class="kpi-title">Transactions</span>
+      <span class="kpi-icon">🧾</span>
+    </div>
+    <div class="kpi-val" id="kpiTransactions">0</div>
+    <div class="kpi-trend" id="kpiTxTrend">Comparing to yesterday...</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-header">
+      <span class="kpi-title">Avg. Ticket Size</span>
+      <span class="kpi-icon">🛒</span>
+    </div>
+    <div class="kpi-val" id="kpiAvgTicket">{{ tenant_currency }} 0.00</div>
+    <div class="kpi-trend">Average value per transaction</div>
+  </div>
+
+  {% if current_user.role in ['owner', 'manager'] %}
+  <div class="kpi-card success">
+    <div class="kpi-header">
+      <span class="kpi-title">Profit Today</span>
+      <span class="kpi-icon">📈</span>
+    </div>
+    <div class="kpi-val" id="kpiProfit">{{ tenant_currency }} 0.00</div>
+    <div class="kpi-trend">Based on cost prices</div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="dashboard-grid">
+  <!-- Left Side: Quick Links and Operations -->
+  <div>
+    <h2 style="font-size: 18px; margin-bottom: 16px;">Quick Actions</h2>
+    <div class="quick-links">
+      <a href="{{ url_for('pos.checkout') }}" class="link-card">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        New Checkout
+      </a>
+      <a href="{{ url_for('products.list_products') }}" class="link-card">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Product Catalog
+      </a>
+      {% if current_user.role in ['owner', 'manager', 'stock_manager'] %}
+      <a href="{{ url_for('stock.adjustments') }}" class="link-card">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        Stock Control
+      </a>
+      {% endif %}
+      <a href="{{ url_for('reports.daily_report') }}" class="link-card">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Daily Reports
+      </a>
+    </div>
+  </div>
+
+  <!-- Right Side: Top Selling Items Today -->
+  <div class="card">
+    <h2 style="font-size: 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+      🔥 Top Selling Items Today
+    </h2>
+    <div class="recent-products-list" id="topProductsToday">
+      <div style="text-align: center; color: var(--text-muted); padding: 20px 0;">
+        Loading data...
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Fetch stats on page load
+  fetch("{{ url_for('analytics.dashboard_stats') }}")
+    .then(r => r.json())
+    .then(data => {
+      // 1. Revenue Formatting
+      const revenue = data.today_revenue;
+      document.getElementById('kpiRevenue').textContent = "{{ tenant_currency }} " + revenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      
+      const revDiff = revenue - data.yesterday_revenue;
+      const revTrend = document.getElementById('kpiRevenueTrend');
+      if (revDiff >= 0) {
+        revTrend.innerHTML = '<span style="color:var(--color-success)">▲ +' + "{{ tenant_currency }} " + revDiff.toLocaleString() + '</span> from yesterday';
+      } else {
+        revTrend.innerHTML = '<span style="color:var(--color-error)">▼ -' + "{{ tenant_currency }} " + Math.abs(revDiff).toLocaleString() + '</span> from yesterday';
+      }
+
+      // 2. Transactions
+      document.getElementById('kpiTransactions').textContent = data.today_tx;
+      const txDiff = data.today_tx - data.yesterday_tx;
+      const txTrend = document.getElementById('kpiTxTrend');
+      if (txDiff >= 0) {
+        txTrend.innerHTML = '<span style="color:var(--color-success)">▲ +' + txDiff + '</span> transactions';
+      } else {
+        txTrend.innerHTML = '<span style="color:var(--color-error)">▼ ' + txDiff + '</span> transactions';
+      }
+
+      // 3. Average Ticket
+      document.getElementById('kpiAvgTicket').textContent = "{{ tenant_currency }} " + data.avg_order.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+      // 4. Profit (if element exists)
+      const profitEl = document.getElementById('kpiProfit');
+      if (profitEl) {
+        profitEl.textContent = "{{ tenant_currency }} " + data.profit_today.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      }
+
+      // 5. Render Top Products
+      const topContainer = document.getElementById('topProductsToday');
+      topContainer.innerHTML = '';
+      if (data.top_products.length === 0) {
+        topContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px 0;">No sales recorded today yet.</div>';
+      } else {
+        data.top_products.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'recent-product-item';
+          div.innerHTML = `
+            <span class="recent-product-name">${item.name}</span>
+            <span class="recent-product-qty">${item.qty} sold</span>
+          `;
+          topContainer.appendChild(div);
+        });
+      }
+    })
+    .catch(err => {
+      console.error('Failed to load dashboard statistics', err);
+    });
+</script>
+{% endblock %}

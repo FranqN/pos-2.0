@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<style>
+  .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+  .page-header h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; margin: 0; }
+  .page-header .page-sub { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+  .page-header-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  .catalog-container {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .catalog-form-card { position: sticky; top: 90px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .form-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; }
+  .form-group input, .form-group select { width: 100%; box-sizing: border-box; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .catalog-table-card { display: flex; flex-direction: column; gap: 16px; }
+  .catalog-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .table-search-input { width: 260px; }
+  .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .filter-pill {
+    padding: 5px 14px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    text-decoration: none;
+    color: var(--text-muted);
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: 0.01em;
+  }
+  .filter-pill:hover, .filter-pill.active { background: var(--color-primary-gradient); color: #fff; border-color: transparent; box-shadow: 0 3px 8px rgba(99, 102, 241, 0.2); }
+  .csv-upload {
+    background: var(--color-primary-light);
+    border: 1px dashed var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-top: 18px;
+  }
+  .edit-modal { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; }
+  .edit-modal.open { display: flex; }
+  .edit-modal-content {
+    background: var(--bg-surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    padding: 32px;
+    width: 440px;
+    max-width: 92vw;
+    max-height: 88vh;
+    overflow-y: auto;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.25);
+    animation: modalIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .prod-actions { display: flex; gap: 4px; }
+  .prod-actions form { display: inline; }
+  @media (max-width: 900px) {
+    .catalog-container { grid-template-columns: 1fr; }
+    .catalog-form-card { position: static; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Product Catalog</h1>
+    <div class="page-sub">Manage your products, pricing, and stock levels</div>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('products.csv_template') }}" class="btn btn-secondary" style="font-size: 12px; padding: 8px 14px;">📥 CSV Template</a>
+    <a href="{{ url_for('stock.inventory') }}" class="btn" style="font-size: 12px; padding: 8px 14px;">📊 Inventory Report</a>
+  </div>
+</div>
+
+<div class="catalog-container">
+  <!-- Left Column: Add Product Form -->
+  <div>
+    <div class="card catalog-form-card">
+      <h2 style="margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Add New Product</h2>
+      <form method="post" action="{{ url_for('products.create_product') }}" enctype="multipart/form-data">
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input name="name" type="text" placeholder="e.g. Broadways Bread 400g" required>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <input name="category" type="text" value="General" placeholder="e.g. Groceries, Beverages">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Price ({{ tenant_currency }}) *</label>
+            <input name="price" type="number" step="0.01" value="0.00" required>
+          </div>
+          <div class="form-group">
+            <label>Cost ({{ tenant_currency }})</label>
+            <input name="cost" type="number" step="0.01" value="0.00">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>SKU</label>
+            <input name="sku" type="text" placeholder="e.g. BR-400">
+          </div>
+          <div class="form-group">
+            <label>Barcode</label>
+            <input name="barcode" type="text" placeholder="Scan or enter code">
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom: 8px;">
+          <div class="form-group">
+            <label>Stock on Hand</label>
+            <input name="stock_on_hand" type="number" value="0">
+          </div>
+          <div class="form-group">
+            <label>Reorder Level</label>
+            <input name="reorder_level" type="number" value="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Product Image (optional)</label>
+          <input name="image" type="file" accept="image/*">
+        </div>
+        <button class="btn" type="submit" style="width: 100%; padding: 12px;">Add Product to Catalog</button>
+      </form>
+
+      <!-- CSV Import -->
+      <div class="csv-upload">
+        <div style="font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--color-success-text);">📁 Bulk Import via CSV</div>
+        <form method="post" action="{{ url_for('products.import_csv') }}" enctype="multipart/form-data">
+          <input type="file" name="csv_file" accept=".csv" required style="font-size: 12px; margin-bottom: 8px;">
+          <button class="btn btn-success" type="submit" style="width: 100%; font-size: 12px; padding: 8px;">Import Products from CSV</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Catalog Grid & Search -->
+  <div class="card catalog-table-card">
+    <div class="catalog-header">
+      <h2 style="margin: 0;">Product Inventory Catalog</h2>
+      <form method="get" action="{{ url_for('products.list_products') }}" style="display: flex; gap: 8px; align-items: center;">
+        <input class="table-search-input" name="q" type="text" placeholder="Search products..." value="{{ search or '' }}">
+        <button class="btn" type="submit" style="padding: 9px 16px;">Search</button>
+        {% if search or category_filter or status_filter != 'active' %}
+          <a href="{{ url_for('products.list_products') }}" class="btn btn-secondary" style="padding: 9px 14px; font-size: 12px;">Clear</a>
+        {% endif %}
+      </form>
+    </div>
+
+    <!-- Category + Status pills -->
+    <div class="filter-pills">
+      <a class="filter-pill {% if not category_filter %}active{% endif %}" href="{{ url_for('products.list_products', q=search, status=status_filter) }}">All</a>
+      {% for cat in all_categories %}
+        <a class="filter-pill {% if category_filter == cat %}active{% endif %}" href="{{ url_for('products.list_products', q=search, cat=cat, status=status_filter) }}">{{ cat }}</a>
+      {% endfor %}
+      <span style="border-left: 1px solid var(--border-color); margin: 0 4px;"></span>
+      <a class="filter-pill {% if status_filter == 'active' %}active{% endif %}" href="{{ url_for('products.list_products', q=search, cat=category_filter, status='active') }}">Active</a>
+      <a class="filter-pill {% if status_filter == 'inactive' %}active{% endif %}" href="{{ url_for('products.list_products', q=search, cat=category_filter, status='inactive') }}">Inactive</a>
+      <a class="filter-pill {% if status_filter == 'all' %}active{% endif %}" href="{{ url_for('products.list_products', q=search, cat=category_filter, status='all') }}">All Status</a>
+    </div>
+
+    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Showing {{ products|length }} products</div>
+
+    <div style="overflow-x: auto;">
+      <table id="catalogTable">
+        <thead>
+          <tr>
+            <th>Product Name</th>
+            <th>Category</th>
+            <th>Selling Price</th>
+            <th>Cost Price</th>
+            <th>Margin</th>
+            <th style="text-align: center;">Stock</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in products %}
+            {% set margin = 0 %}
+            {% if p.price > 0 %}
+              {% set margin = ((p.price - p.cost) / p.price * 100)|round(1) %}
+            {% endif %}
+            <tr>
+              <td style="font-weight: 600;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  {% if p.image_filename %}
+                    <img src="{{ url_for('static', filename='uploads/' ~ p.image_filename) }}" style="width:36px; height:36px; border-radius:6px; object-fit:cover;">
+                  {% else %}
+                    <div style="width:36px; height:36px; border-radius:6px; background:var(--bg-primary); display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--text-muted); flex-shrink:0;">📦</div>
+                  {% endif %}
+                  <div>
+                    <div>{{ p.name }}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); font-weight: 400;">
+                      SKU: {{ p.sku or 'N/A' }}{% if p.barcode %} | BC: {{ p.barcode }}{% endif %}
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="badge badge-info">{{ p.category }}</span></td>
+              <td style="font-weight: 700; color: var(--color-primary);">{{ tenant_currency }} {{ "{:,.2f}".format(p.price) }}</td>
+              <td style="color: var(--text-muted);">{{ tenant_currency }} {{ "{:,.2f}".format(p.cost) }}</td>
+              <td style="font-weight: 600; color: {% if margin > 20 %}var(--color-success){% elif margin > 5 %}var(--color-warning-text){% else %}var(--color-error-text){% endif %};">
+                {{ margin }}%
+              </td>
+              <td style="font-weight: 600; text-align: center;">{{ p.stock_on_hand }}</td>
+              <td>
+                {% if not p.active %}
+                  <span class="badge badge-info" style="background:var(--bg-primary); color:var(--text-muted);">Inactive</span>
+                {% elif p.stock_on_hand <= 0 %}
+                  <span class="badge badge-danger">Out of Stock</span>
+                {% elif p.stock_on_hand <= p.reorder_level %}
+                  <span class="badge badge-warning">Low Stock</span>
+                {% else %}
+                  <span class="badge badge-success">In Stock</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="prod-actions">
+                  <button class="btn btn-secondary" style="font-size: 11px; padding: 4px 10px;" type="button"
+                    onclick="openEditModal({{ p.id }}, '{{ p.name|e }}', '{{ p.sku or ''|e }}', '{{ p.barcode or ''|e }}', '{{ p.category|e }}', '{{ p.price }}', '{{ p.cost }}', {{ p.reorder_level }})">Edit</button>
+                  <form method="post" action="{{ url_for('products.toggle_product', product_id=p.id) }}">
+                    <button class="btn {% if p.active %}btn-danger{% else %}btn-success{% endif %}" style="font-size: 11px; padding: 4px 10px;" type="submit">
+                      {{ 'Deactivate' if p.active else 'Activate' }}
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div class="edit-modal" id="editModal" onclick="if(event.target===this)closeEditModal()">
+  <div class="edit-modal-content">
+    <h2 style="margin-bottom: 18px; display: flex; align-items: center; gap: 8px;">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+      Edit Product
+    </h2>
+    <form method="post" id="editForm" enctype="multipart/form-data">
+      <div class="form-group"><label>Name</label><input name="name" id="editName" required></div>
+      <div class="form-row">
+        <div class="form-group"><label>SKU</label><input name="sku" id="editSku"></div>
+        <div class="form-group"><label>Barcode</label><input name="barcode" id="editBarcode"></div>
+      </div>
+      <div class="form-group"><label>Category</label><input name="category" id="editCategory"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Price ({{ tenant_currency }})</label><input name="price" id="editPrice" type="number" step="0.01" required></div>
+        <div class="form-group"><label>Cost ({{ tenant_currency }})</label><input name="cost" id="editCost" type="number" step="0.01"></div>
+      </div>
+      <div class="form-group"><label>Reorder Level</label><input name="reorder_level" id="editReorder" type="number"></div>
+      <div class="form-group"><label>Product Image</label><input name="image" type="file" accept="image/*"></div>
+      <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn" type="submit" style="flex: 1;">Save Changes</button>
+        <button class="btn btn-secondary" type="button" onclick="closeEditModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openEditModal(id, name, sku, barcode, category, price, cost, reorder) {
+    document.getElementById('editForm').action = `/products/${id}/edit`;
+    document.getElementById('editName').value = name;
+    document.getElementById('editSku').value = sku;
+    document.getElementById('editBarcode').value = barcode;
+    document.getElementById('editCategory').value = category;
+    document.getElementById('editPrice').value = price;
+    document.getElementById('editCost').value = cost;
+    document.getElementById('editReorder').value = reorder;
+    document.getElementById('editModal').classList.add('open');
+  }
+  function closeEditModal() {
+    document.getElementById('editModal').classList.remove('open');
+  }
+</script>
+{% endblock %}

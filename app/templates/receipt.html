@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Receipt {{ sale.sale_number }} — {{ tenant.name if tenant else 'POS' }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .toolbar {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 18px; border-radius: 8px; font-size: 14px;
+      font-weight: 600; cursor: pointer; border: none; text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .btn-primary { background: #4f46e5; color: #fff; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-secondary { background: #64748b; color: #fff; }
+    .btn-secondary:hover { background: #475569; }
+    .btn-success { background: #10b981; color: #fff; }
+    .btn-success:hover { background: #059669; }
+
+    .receipt {
+      background: #ffffff;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+      overflow: hidden;
+      color: #0f172a;
+    }
+
+    .receipt-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff;
+      padding: 32px 28px 24px;
+      text-align: center;
+    }
+
+    .store-logo {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.15);
+      padding: 4px;
+      margin-bottom: 12px;
+    }
+
+    .store-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .store-meta {
+      font-size: 12px;
+      color: rgba(255,255,255,0.65);
+      line-height: 1.6;
+    }
+
+    .receipt-body { padding: 24px 28px; }
+
+    .invoice-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px dashed #e2e8f0;
+    }
+
+    .invoice-label { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+    .invoice-value { font-size: 14px; font-weight: 600; color: #0f172a; }
+
+    .items-table { width: 100%; margin-bottom: 16px; }
+    .items-table th {
+      font-size: 11px; color: #94a3b8; font-weight: 600;
+      text-transform: uppercase; padding: 8px 0; border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+    }
+    .items-table th:last-child { text-align: right; }
+    .items-table td { padding: 10px 0; font-size: 13px; vertical-align: top; border-bottom: 1px dashed #f1f5f9; }
+    .items-table td:last-child { text-align: right; font-weight: 600; }
+    .item-name { font-weight: 500; color: #0f172a; }
+    .item-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+    .totals-section {
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .total-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #475569;
+    }
+    .total-line:last-child { margin-bottom: 0; }
+    .total-line.grand {
+      font-size: 18px;
+      font-weight: 700;
+      color: #4f46e5;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 2px solid #e2e8f0;
+    }
+
+    .payment-section {
+      margin-bottom: 16px;
+    }
+    .payment-section h4 {
+      font-size: 11px; color: #94a3b8; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;
+    }
+    .payment-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 13px;
+    }
+    .pay-cash { background: #ecfdf5; color: #065f46; }
+    .pay-mpesa { background: #eff6ff; color: #1e40af; }
+    .pay-card { background: #faf5ff; color: #6b21a8; }
+    .pay-change { background: #fefce8; color: #92400e; font-weight: 700; }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .status-paid { background: #d1fae5; color: #065f46; }
+    .status-partial { background: #fef3c7; color: #92400e; }
+    .status-unpaid { background: #fee2e2; color: #991b1b; }
+
+    .receipt-footer {
+      text-align: center;
+      padding: 20px 28px 28px;
+      border-top: 1px dashed #e2e8f0;
+      margin-top: 4px;
+    }
+    .receipt-footer .thank-you {
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    .receipt-footer .footer-note { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .toolbar { display: none; }
+      .receipt { box-shadow: none; border-radius: 0; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="toolbar">
+  <a href="{{ url_for('pos.checkout') }}" class="btn btn-secondary">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    Back to POS
+  </a>
+  <button onclick="window.print()" class="btn btn-primary">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+    Print Receipt
+  </button>
+  <a href="{{ url_for('receipt.download_receipt_pdf', sale_id=sale.id) }}" class="btn btn-success">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+    Download PDF
+  </a>
+</div>
+
+<div class="receipt">
+  <!-- Header -->
+  <div class="receipt-header">
+    {% if tenant and tenant.logo_filename %}
+      <img class="store-logo" src="{{ url_for('static', filename='uploads/' ~ tenant.logo_filename) }}" alt="logo">
+    {% endif %}
+    <div class="store-name">{{ tenant.name if tenant else 'Enterprise POS' }}</div>
+    <div class="store-meta">
+      {% if tenant and tenant.address %}{{ tenant.address }}<br>{% endif %}
+      {% if tenant and tenant.phone %}Tel: {{ tenant.phone }}<br>{% endif %}
+      {% if tenant and tenant.email %}{{ tenant.email }}{% endif %}
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="receipt-body">
+    <div class="invoice-info">
+      <div>
+        <div class="invoice-label">Invoice No.</div>
+        <div class="invoice-value">{{ sale.sale_number }}</div>
+      </div>
+      <div style="text-align: right;">
+        <div class="invoice-label">Date</div>
+        <div class="invoice-value">{{ sale.created_at.strftime('%d %b %Y, %H:%M') }}</div>
+      </div>
+    </div>
+
+    {% if sale.customer %}
+    <div style="margin-bottom: 16px; padding: 10px 14px; background: #f0f9ff; border-radius: 8px; font-size: 13px;">
+      <span style="color: #94a3b8; font-size: 11px; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 2px;">Customer</span>
+      <span style="font-weight: 600;">{{ sale.customer.name }}</span>
+      {% if sale.customer.phone %}<span style="color: #94a3b8;"> — {{ sale.customer.phone }}</span>{% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Status -->
+    <div>
+      {% if sale.payment_status == 'paid' %}
+        <span class="status-badge status-paid">✓ Fully Paid</span>
+      {% elif sale.payment_status == 'partial' %}
+        <span class="status-badge status-partial">⚡ Partially Paid</span>
+      {% else %}
+        <span class="status-badge status-unpaid">⚠ Unpaid</span>
+      {% endif %}
+    </div>
+
+    <!-- Items -->
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th style="text-align: center;">Qty</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in sale.items %}
+        <tr>
+          <td>
+            <div class="item-name">{{ item.name_snapshot }}</div>
+            {% if item.sku_snapshot %}<div class="item-meta">SKU: {{ item.sku_snapshot }}</div>{% endif %}
+            <div class="item-meta">@ {{ currency }} {{ "{:,.2f}".format(item.unit_price) }}</div>
+          </td>
+          <td style="text-align: center;">{{ item.quantity }}</td>
+          <td>{{ currency }} {{ "{:,.2f}".format(item.line_total) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div class="totals-section">
+      <div class="total-line">
+        <span>Subtotal</span>
+        <span>{{ currency }} {{ "{:,.2f}".format(sale.subtotal) }}</span>
+      </div>
+      {% if sale.discount and sale.discount > 0 %}
+      <div class="total-line" style="color: #ef4444;">
+        <span>Discount</span>
+        <span>- {{ currency }} {{ "{:,.2f}".format(sale.discount) }}</span>
+      </div>
+      {% endif %}
+      <div class="total-line grand">
+        <span>TOTAL</span>
+        <span>{{ currency }} {{ "{:,.2f}".format(sale.total) }}</span>
+      </div>
+    </div>
+
+    <!-- Payment breakdown -->
+    <div class="payment-section">
+      <h4>Payment Breakdown</h4>
+      {% if sale.cash_amount and sale.cash_amount > 0 %}
+        <div class="payment-row pay-cash">
+          <span>💵 Cash</span>
+          <span>{{ currency }} {{ "{:,.2f}".format(sale.cash_amount) }}</span>
+        </div>
+      {% endif %}
+      {% if sale.mpesa_amount and sale.mpesa_amount > 0 %}
+        <div class="payment-row pay-mpesa">
+          <span>📱 M-Pesa</span>
+          <span>{{ currency }} {{ "{:,.2f}".format(sale.mpesa_amount) }}</span>
+        </div>
+      {% endif %}
+      {% if sale.card_amount and sale.card_amount > 0 %}
+        <div class="payment-row pay-card">
+          <span>💳 Card</span>
+          <span>{{ currency }} {{ "{:,.2f}".format(sale.card_amount) }}</span>
+        </div>
+      {% endif %}
+      {% if change and change > 0 %}
+        <div class="payment-row pay-change">
+          <span>🔄 Change</span>
+          <span>{{ currency }} {{ "{:,.2f}".format(change) }}</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="receipt-footer">
+    <div class="thank-you">Thank you for your business! 🙏</div>
+    <div class="footer-note">
+      Please retain this receipt for any returns.<br>
+      Powered by Enterprise POS
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1153 @@
+{% extends 'base.html' %}
+{% block head %}
+<style>
+  .pos-container {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 24px;
+    height: calc(100vh - 130px);
+  }
+
+  .left-pane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .right-pane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  .search-filter-card {
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .search-bar-container {
+    position: relative;
+  }
+
+  .search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding-left: 36px;
+    font-size: 15px;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  .category-pills {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .category-pill {
+    padding: 6px 14px;
+    background: var(--bg-primary);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+  }
+
+  .category-pill.active, .category-pill:hover {
+    background: var(--color-primary);
+    color: #ffffff;
+    border-color: var(--color-primary);
+  }
+
+  .product-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+  }
+
+  .product-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  .product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary);
+  }
+
+  .product-name {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+    color: var(--text-main);
+  }
+
+  .product-sku {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .product-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  .product-price {
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .product-stock {
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+  }
+
+  .product-stock.in-stock {
+    background: var(--color-success-bg);
+    color: var(--color-success-text);
+  }
+
+  .product-stock.low-stock {
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
+  }
+
+  .product-stock.out-of-stock {
+    background: var(--color-error-bg);
+    color: var(--color-error-text);
+  }
+
+  .cart-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    box-sizing: border-box;
+  }
+
+  .cart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+  }
+
+  .cart-items-list {
+    min-height: 200px;
+    max-height: 380px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+    padding-right: 4px;
+    flex-shrink: 0;
+  }
+
+  .cart-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border-color);
+  }
+
+  .cart-item-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cart-item-name {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-main);
+  }
+
+  .cart-item-price {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .cart-item-qty-control {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .cart-item-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: all 0.15s ease;
+  }
+
+  .cart-item-btn:hover {
+    background: var(--color-primary);
+    color: #ffffff;
+    border-color: var(--color-primary);
+  }
+
+  .cart-item-qty {
+    width: 30px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-main);
+  }
+
+  .cart-item-total {
+    font-weight: 600;
+    font-size: 14px;
+    min-width: 70px;
+    text-align: right;
+    color: var(--text-main);
+  }
+
+  .cart-summary {
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .summary-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--text-main);
+  }
+
+  .summary-line.total {
+    font-size: 18px;
+    font-weight: 700;
+    border-top: 1px solid var(--border-color);
+    padding-top: 8px;
+    margin-top: 4px;
+    color: var(--color-primary);
+  }
+
+  .payment-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .split-payments {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .payment-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .payment-input-group label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .payment-input-group input {
+    padding: 8px 10px;
+    text-align: right;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .quick-pay-presets {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+  }
+
+  .preset-btn {
+    padding: 6px 10px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: var(--text-main);
+  }
+
+  .preset-btn:hover {
+    background: var(--border-color);
+  }
+
+  .hold-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  /* AI sidebar styles */
+  .ai-sidebar {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-top: 16px;
+  }
+
+  .ai-sidebar h3 {
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .ai-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  @media (max-width: 1100px) {
+    .pos-container {
+      grid-template-columns: 1fr;
+      height: auto;
+    }
+    .left-pane, .right-pane {
+      height: auto;
+      overflow: visible;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pos-container">
+  <!-- Left Side: Product Selection -->
+  <div class="left-pane">
+    <div class="card search-filter-card">
+      <div class="search-bar-container">
+        <svg class="search-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input class="search-input" id="productSearch" type="text" placeholder="Search product by name, SKU, or scan barcode...">
+      </div>
+      <div class="category-pills">
+        <div class="category-pill active" onclick="filterCategory('All')">All Categories</div>
+        {% set categories = [] %}
+        {% for p in products %}
+          {% if p.category not in categories %}
+            {% set _ = categories.append(p.category) %}
+            <div class="category-pill" onclick="filterCategory('{{ p.category }}')">{{ p.category }}</div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="product-scroll-area">
+      <div class="product-grid" id="productGrid">
+        {% for p in products %}
+          <!-- Fix: Name apostrophe bug resolved by passing name using data attributes and listening via dataset in JS -->
+          <div class="product-card" 
+               data-id="{{ p.id }}"
+               data-name="{{ p.name }}"
+               data-price="{{ p.price }}"
+               data-stock="{{ p.stock_on_hand }}"
+               data-sku="{{ p.sku or '' }}"
+               data-barcode="{{ p.barcode or '' }}"
+               data-category="{{ p.category }}"
+               onclick="handleProductCardClick(this)">
+            <div>
+              <div class="product-name">{{ p.name }}</div>
+              <div class="product-sku">SKU: {{ p.sku or 'N/A' }}</div>
+            </div>
+            <div class="product-footer">
+              <span class="product-price">{{ tenant_currency }} {{ "{:,.2f}".format(p.price) }}</span>
+              {% if p.stock_on_hand <= 0 %}
+                <span class="product-stock out-of-stock">Out of Stock</span>
+              {% elif p.stock_on_hand <= p.reorder_level %}
+                <span class="product-stock low-stock">Low Stock ({{ p.stock_on_hand }})</span>
+              {% else %}
+                <span class="product-stock in-stock">Stock: {{ p.stock_on_hand }}</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side: Active Cart -->
+  <div class="right-pane">
+    <div class="card cart-card">
+      <div class="cart-header">
+        <h2 style="margin: 0; font-size: 18px; color: var(--text-main);">Active Cart</h2>
+        <span class="badge badge-info" id="cartCountBadge">0 items</span>
+      </div>
+
+      <div class="cart-items-list" id="cartItemsContainer">
+        <!-- Rendered via JS -->
+        <div style="text-align: center; color: var(--text-muted); padding: 40px 0;" id="emptyCartMessage">
+          <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom: 8px; opacity: 0.5;"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+          <div>Cart is empty. Click products on the left to add.</div>
+        </div>
+      </div>
+
+      <form method="post" action="{{ url_for('pos.create_sale') }}" id="checkoutForm" onsubmit="return validateCheckout(event)">
+        
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">CUSTOMER</label>
+        <select name="customer_id" style="width: 100%; margin-bottom: 12px;">
+          <option value="">Walk-in Cash Sale</option>
+          {% for c in customers %}
+            <option value="{{ c.id }}">{{ c.name }} (Credit: {{ tenant_currency }} {{ "{:,.2f}".format(c.balance) }})</option>
+          {% endfor %}
+        </select>
+
+        <div class="cart-summary">
+          <div class="summary-line">
+            <span>Subtotal</span>
+            <span id="subtotalLabel">{{ tenant_currency }} 0.00</span>
+          </div>
+          <div class="summary-line">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              Discount ({{ tenant_currency }})
+            </span>
+            <input style="padding: 4px 8px; width: 80px; text-align: right; font-size: 13px;" name="discount" id="discountInput" type="number" step="0.01" value="0" oninput="calculateTotals()">
+          </div>
+          <div class="summary-line total">
+            <span>Total Payable</span>
+            <span id="totalLabel">{{ tenant_currency }} 0.00</span>
+          </div>
+        </div>
+
+        <div class="payment-section">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">SPLIT PAYMENTS</label>
+            <span id="paymentDiffLabel" style="font-size: 12px; font-weight: 700;"></span>
+          </div>
+          
+          <div class="split-payments">
+            <div class="payment-input-group">
+              <label>Cash</label>
+              <input name="cash_amount" id="cashInput" type="number" step="0.01" value="0" oninput="updatePaymentStatus()">
+            </div>
+            <div class="payment-input-group">
+              <label>M-Pesa</label>
+              <div style="display: flex; gap: 4px;">
+                <input name="mpesa_amount" id="mpesaInput" type="number" step="0.01" value="0" oninput="updatePaymentStatus()" style="flex: 1;">
+                <button class="btn btn-success" type="button" onclick="openMpesaModal()" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">📱 STK Push</button>
+              </div>
+            </div>
+            <div class="payment-input-group">
+              <label>Card</label>
+              <input name="card_amount" id="cardInput" type="number" step="0.01" value="0" oninput="updatePaymentStatus()">
+            </div>
+          </div>
+
+          <!-- Hidden M-Pesa transaction fields -->
+          <input type="hidden" name="mpesa_phone" id="mpesaPhoneHidden">
+          <input type="hidden" name="mpesa_checkout_id" id="mpesaCheckoutIdHidden">
+          <input type="hidden" name="mpesa_receipt_number" id="mpesaReceiptHidden">
+
+          <div class="quick-pay-presets">
+            <button class="preset-btn" type="button" onclick="setExactPay()">Exact Amount</button>
+            <button class="preset-btn" type="button" onclick="addPresetPay(100)">+100</button>
+            <button class="preset-btn" type="button" onclick="addPresetPay(500)">+500</button>
+            <button class="preset-btn" type="button" onclick="addPresetPay(1000)">+1,000</button>
+          </div>
+
+          <button class="btn" type="submit" style="width: 100%; padding: 14px; font-size: 15px; margin-top: 8px;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            Complete Sale
+          </button>
+        </div>
+      </form>
+
+      <div class="hold-actions">
+        <button class="btn btn-secondary" type="button" style="flex: 1; padding: 8px;" onclick="holdCurrentSale()">Hold Sale</button>
+        <button class="btn btn-secondary" type="button" style="flex: 1; padding: 8px;" id="resumeSaleBtn" onclick="resumeHeldSale()" disabled>Resume (0)</button>
+        <button class="btn btn-danger" type="button" style="padding: 8px;" onclick="clearCart()">Clear</button>
+      </div>
+
+      <!-- AI suggestions panel -->
+      <div class="ai-sidebar">
+        <h3>
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6A4.997 4.997 0 0 1 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.06-2.15 3.9z"/></svg>
+          AI Reorder Diagnostics
+        </h3>
+        {% if reorder|length == 0 %}
+          <div style="font-size: 11px; color: var(--text-muted)">All product stock levels healthy.</div>
+        {% else %}
+          <ul class="ai-list">
+            {% for s in reorder %}
+              <li>
+                <b>{{ s.name }}</b> (Stock: {{ s.stock }}): Reorder <b>{{ s.recommended }}</b> based on velocity ({{ s.velocity }} units/day).
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ M-PESA STK PUSH MODAL ═══════ -->
+<div id="mpesaModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(6px); z-index:300; align-items:center; justify-content:center;" onclick="if(event.target===this)closeMpesaModal()">
+  <div style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:32px; width:420px; max-width:92vw; box-shadow:0 30px 60px rgba(0,0,0,0.3); animation:modalIn 0.25s ease;">
+    <h2 style="margin:0 0 20px; font-size:20px; display:flex; align-items:center; gap:10px; color:var(--text-main);">
+      <span style="background:linear-gradient(135deg,#10b981,#059669); color:#fff; width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px;">📱</span>
+      Lipa Na M-Pesa
+    </h2>
+
+    <!-- Step 1: Enter Phone -->
+    <div id="mpesaStep1">
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:6px;">Customer Phone Number</label>
+        <input type="tel" id="mpesaPhoneInput" placeholder="e.g. 0712345678" style="width:100%; box-sizing:border-box; font-size:16px; padding:12px 14px;">
+      </div>
+      <div style="margin-bottom:16px; padding:12px; background:var(--bg-primary); border-radius:var(--radius-sm); display:flex; justify-content:space-between; font-size:14px;">
+        <span style="color:var(--text-muted);">Amount to Pay</span>
+        <span style="font-weight:700; color:var(--color-primary);" id="mpesaModalAmount">{{ tenant_currency }} 0.00</span>
+      </div>
+      <button class="btn btn-success" type="button" onclick="sendStkPush()" style="width:100%; padding:14px; font-size:15px;" id="stkPushBtn">
+        Send STK Push to Phone
+      </button>
+    </div>
+
+    <!-- Step 2: Awaiting Payment -->
+    <div id="mpesaStep2" style="display:none;">
+      <div style="text-align:center; padding:20px 0;">
+        <div id="mpesaSpinner" style="width:48px; height:48px; border:4px solid var(--border-color); border-top-color:var(--color-primary); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 16px;"></div>
+        <div style="font-size:16px; font-weight:600; color:var(--text-main); margin-bottom:4px;" id="mpesaStatusText">Awaiting PIN entry on handset...</div>
+        <div style="font-size:12px; color:var(--text-muted);" id="mpesaStatusSub">The customer should see a prompt on their phone.</div>
+      </div>
+
+      <!-- Simulation Controls (only when simulate mode is on) -->
+      <div id="mpesaSimControls" style="display:none; border-top:1px dashed var(--border-color); padding-top:14px; margin-top:14px;">
+        <div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">⚡ Simulation Controls</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-success" type="button" onclick="simulateCallback('success')" style="flex:1; padding:8px; font-size:12px;">✓ Success</button>
+          <button class="btn btn-danger" type="button" onclick="simulateCallback('insufficient_funds')" style="flex:1; padding:8px; font-size:12px;">✗ Insufficient</button>
+          <button class="btn btn-secondary" type="button" onclick="simulateCallback('cancelled')" style="flex:1; padding:8px; font-size:12px;">⊘ Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Result -->
+    <div id="mpesaStep3" style="display:none;">
+      <div style="text-align:center; padding:16px 0;">
+        <div id="mpesaResultIcon" style="font-size:48px; margin-bottom:12px;"></div>
+        <div id="mpesaResultTitle" style="font-size:18px; font-weight:700; margin-bottom:4px;"></div>
+        <div id="mpesaResultSub" style="font-size:13px; color:var(--text-muted); margin-bottom:6px;"></div>
+        <div id="mpesaReceiptDisplay" style="font-size:14px; font-weight:700; color:var(--color-primary); margin-bottom:16px;"></div>
+      </div>
+      <button class="btn" type="button" onclick="closeMpesaModal()" style="width:100%; padding:12px;">Close</button>
+    </div>
+
+    <button type="button" onclick="closeMpesaModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:20px; line-height:1;">&times;</button>
+  </div>
+</div>
+
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes modalIn { from { opacity:0; transform:scale(0.95) translateY(10px); } to { opacity:1; transform:scale(1) translateY(0); } }
+</style>
+
+<script>
+  let cart = [];
+  const products = [];
+
+  // Parse product cards safely using dataset attributes
+  document.querySelectorAll('.product-card').forEach(card => {
+    products.push({
+      id: parseInt(card.dataset.id),
+      name: card.dataset.name,
+      price: parseFloat(card.dataset.price),
+      stock: parseInt(card.dataset.stock),
+      sku: card.dataset.sku,
+      barcode: card.dataset.barcode,
+      category: card.dataset.category
+    });
+  });
+
+  // Client-side search and category filtering
+  const productSearch = document.getElementById('productSearch');
+  productSearch.addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase().trim();
+    document.querySelectorAll('.product-card').forEach(card => {
+      const name = card.dataset.name.toLowerCase();
+      const sku = card.dataset.sku.toLowerCase();
+      const barcode = card.dataset.barcode.toLowerCase();
+      const matches = name.includes(q) || sku.includes(q) || barcode.includes(q);
+      
+      const activePill = document.querySelector('.category-pill.active');
+      const currentCategory = activePill ? activePill.textContent : 'All Categories';
+      const cardCategory = card.dataset.category;
+      const categoryMatches = (currentCategory === 'All Categories' || cardCategory === currentCategory);
+
+      if (matches && categoryMatches) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  });
+
+  function filterCategory(catName) {
+    document.querySelectorAll('.category-pill').forEach(pill => {
+      if(pill.textContent.includes(catName) || (catName === 'All' && pill.textContent === 'All Categories')) {
+        pill.classList.add('active');
+      } else {
+        pill.classList.remove('active');
+      }
+    });
+
+    const q = productSearch.value.toLowerCase().trim();
+    document.querySelectorAll('.product-card').forEach(card => {
+      const name = card.dataset.name.toLowerCase();
+      const sku = card.dataset.sku.toLowerCase();
+      const barcode = card.dataset.barcode.toLowerCase();
+      const searchMatches = name.includes(q) || sku.includes(q) || barcode.includes(q);
+
+      const cardCategory = card.dataset.category;
+      const categoryMatches = (catName === 'All' || cardCategory === catName);
+
+      if (searchMatches && categoryMatches) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  function handleProductCardClick(card) {
+    const id = parseInt(card.dataset.id);
+    const name = card.dataset.name;
+    const price = parseFloat(card.dataset.price);
+    const stock = parseInt(card.dataset.stock);
+    const sku = card.dataset.sku;
+    addToCart(id, name, price, stock, sku);
+  }
+
+  // Cart operations
+  function addToCart(id, name, price, stock, sku) {
+    if (stock <= 0) {
+      alert("This product is out of stock!");
+      return;
+    }
+
+    const existing = cart.find(item => item.id === id);
+    if (existing) {
+      if (existing.qty >= stock) {
+        alert(`Cannot add more. Available stock: ${stock}`);
+        return;
+      }
+      existing.qty += 1;
+    } else {
+      cart.push({ id, name, price, qty: 1, stock });
+    }
+    renderCart();
+  }
+
+  function adjustQty(id, delta) {
+    const item = cart.find(i => i.id === id);
+    if (!item) return;
+
+    if (delta > 0 && item.qty >= item.stock) {
+      alert(`Cannot exceed stock limit: ${item.stock}`);
+      return;
+    }
+
+    item.qty += delta;
+    if (item.qty <= 0) {
+      cart = cart.filter(i => i.id !== id);
+    }
+    renderCart();
+  }
+
+  function removeItem(id) {
+    cart = cart.filter(i => i.id !== id);
+    renderCart();
+  }
+
+  function clearCart() {
+    cart = [];
+    renderCart();
+  }
+
+  function renderCart() {
+    const container = document.getElementById('cartItemsContainer');
+    const emptyMsg = document.getElementById('emptyCartMessage');
+    const badge = document.getElementById('cartCountBadge');
+    
+    // Clear list
+    container.querySelectorAll('.cart-item').forEach(el => el.remove());
+
+    if (cart.length === 0) {
+      emptyMsg.style.display = 'block';
+      badge.textContent = "0 items";
+      badge.className = "badge badge-info";
+    } else {
+      emptyMsg.style.display = 'none';
+      const totalItemsCount = cart.reduce((sum, item) => sum + item.qty, 0);
+      badge.textContent = `${totalItemsCount} items`;
+      badge.className = "badge badge-success";
+
+      cart.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'cart-item';
+        row.innerHTML = `
+          <div class="cart-item-info">
+            <div class="cart-item-name">${item.name}</div>
+            <div class="cart-item-price">{{ tenant_currency }} ${item.price.toFixed(2)}</div>
+          </div>
+          <div class="cart-item-qty-control">
+            <button class="cart-item-btn" type="button" onclick="adjustQty(${item.id}, -1)">-</button>
+            <span class="cart-item-qty">${item.qty}</span>
+            <button class="cart-item-btn" type="button" onclick="adjustQty(${item.id}, 1)">+</button>
+          </div>
+          <div class="cart-item-total">{{ tenant_currency }} ${(item.price * item.qty).toFixed(2)}</div>
+        `;
+        container.appendChild(row);
+      });
+    }
+    calculateTotals();
+  }
+
+  function calculateTotals() {
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+    const total = Math.max(0, subtotal - discount);
+
+    document.getElementById('subtotalLabel').textContent = `{{ tenant_currency }} ${subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('totalLabel').textContent = `{{ tenant_currency }} ${total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+    updatePaymentStatus();
+  }
+
+  function updatePaymentStatus() {
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+    const payable = Math.max(0, subtotal - discount);
+
+    const cash = parseFloat(document.getElementById('cashInput').value) || 0;
+    const mpesa = parseFloat(document.getElementById('mpesaInput').value) || 0;
+    const card = parseFloat(document.getElementById('cardInput').value) || 0;
+    const paid = cash + mpesa + card;
+
+    const diff = payable - paid;
+    const diffLabel = document.getElementById('paymentDiffLabel');
+
+    if (cart.length === 0) {
+      diffLabel.textContent = "";
+      return;
+    }
+
+    if (diff > 0) {
+      diffLabel.textContent = `Due {{ tenant_currency }} ${diff.toFixed(2)}`;
+      diffLabel.style.color = 'var(--color-warning)';
+    } else if (diff < 0) {
+      diffLabel.textContent = `Change {{ tenant_currency }} ${Math.abs(diff).toFixed(2)}`;
+      diffLabel.style.color = 'var(--color-success)';
+    } else {
+      diffLabel.textContent = "Fully Paid";
+      diffLabel.style.color = 'var(--color-success)';
+    }
+  }
+
+  function setExactPay() {
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+    const payable = Math.max(0, subtotal - discount);
+    
+    document.getElementById('cashInput').value = payable.toFixed(2);
+    document.getElementById('mpesaInput').value = "0";
+    document.getElementById('cardInput').value = "0";
+    updatePaymentStatus();
+  }
+
+  function addPresetPay(amount) {
+    const cashInput = document.getElementById('cashInput');
+    const current = parseFloat(cashInput.value) || 0;
+    cashInput.value = (current + amount).toFixed(2);
+    updatePaymentStatus();
+  }
+
+  // Queue Hold / Resume Actions
+  function holdCurrentSale() {
+    if (cart.length === 0) return;
+    localStorage.setItem('held_pos_sale', JSON.stringify({
+      cart,
+      discount: document.getElementById('discountInput').value,
+      cash: document.getElementById('cashInput').value,
+      mpesa: document.getElementById('mpesaInput').value,
+      card: document.getElementById('cardInput').value,
+    }));
+    clearCart();
+    checkHeldStatus();
+    alert("Sale put on hold successfully!");
+  }
+
+  function resumeHeldSale() {
+    const raw = localStorage.getItem('held_pos_sale');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    cart = data.cart;
+    document.getElementById('discountInput').value = data.discount;
+    document.getElementById('cashInput').value = data.cash;
+    document.getElementById('mpesaInput').value = data.mpesa;
+    document.getElementById('cardInput').value = data.card;
+
+    localStorage.removeItem('held_pos_sale');
+    renderCart();
+    checkHeldStatus();
+  }
+
+  function checkHeldStatus() {
+    const hasHeld = localStorage.getItem('held_pos_sale') !== null;
+    const btn = document.getElementById('resumeSaleBtn');
+    if (hasHeld) {
+      btn.disabled = false;
+      btn.textContent = "Resume (1)";
+      btn.className = "btn btn-success";
+    } else {
+      btn.disabled = true;
+      btn.textContent = "Resume (0)";
+      btn.className = "btn btn-secondary";
+    }
+  }
+
+  // Validation & Form inject before submitting to Flask
+  function validateCheckout(e) {
+    if (cart.length === 0) {
+      alert("Cannot complete sale: Cart is empty.");
+      e.preventDefault();
+      return false;
+    }
+
+    const form = document.getElementById('checkoutForm');
+    
+    // Remove previously injected fields if any
+    form.querySelectorAll('.injected-cart-field').forEach(el => el.remove());
+
+    // Inject cart items into form
+    cart.forEach((item, index) => {
+      const pidField = document.createElement('input');
+      pidField.type = 'hidden';
+      pidField.name = `product_id_${index}`;
+      pidField.value = item.id;
+      pidField.className = 'injected-cart-field';
+
+      const qtyField = document.createElement('input');
+      qtyField.type = 'hidden';
+      qtyField.name = `qty_${index}`;
+      qtyField.value = item.qty;
+      qtyField.className = 'injected-cart-field';
+
+      form.appendChild(pidField);
+      form.appendChild(qtyField);
+    });
+
+    return true;
+  }
+
+  // Check storage on page load
+  checkHeldStatus();
+
+  // ─── KEYBOARD SHORTCUTS ───
+  document.addEventListener('keydown', function(e) {
+    // F2 = focus search
+    if (e.key === 'F2') {
+      e.preventDefault();
+      document.getElementById('productSearch').focus();
+      document.getElementById('productSearch').select();
+    }
+    // F4 = focus discount
+    if (e.key === 'F4') {
+      e.preventDefault();
+      document.getElementById('discountInput').focus();
+      document.getElementById('discountInput').select();
+    }
+    // F8 = submit sale
+    if (e.key === 'F8') {
+      e.preventDefault();
+      document.getElementById('checkoutForm').requestSubmit();
+    }
+    // ESC = clear cart (with confirmation)
+    if (e.key === 'Escape' && cart.length > 0) {
+      if (confirm('Clear cart? (ESC pressed)')) clearCart();
+    }
+    // F6 = focus cash input
+    if (e.key === 'F6') {
+      e.preventDefault();
+      document.getElementById('cashInput').focus();
+      document.getElementById('cashInput').select();
+    }
+  });
+
+  // ─── BARCODE SCANNER: auto-add on Enter ───
+  document.getElementById('productSearch').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = this.value.trim();
+      if (!val) return;
+
+      // Try to find product by exact barcode match
+      const match = document.querySelector(`.product-card[data-barcode="${val}"]`);
+      if (match) {
+        match.click();
+        this.value = '';
+        this.blur();
+        return;
+      }
+
+      // Try SKU exact match
+      const skuMatch = document.querySelector(`.product-card[data-sku="${val}"]`);
+      if (skuMatch) {
+        skuMatch.click();
+        this.value = '';
+        this.blur();
+        return;
+      }
+
+      // If exactly 1 product visible, add it
+      const visible = [...document.querySelectorAll('.product-card')].filter(c => c.style.display !== 'none');
+      if (visible.length === 1) {
+        visible[0].click();
+        this.value = '';
+        this.blur();
+      }
+    }
+  });
+
+  // ─── M-PESA STK PUSH LOGIC ───
+  let activeMpesaCheckoutId = null;
+  let mpesaPollTimer = null;
+
+  function openMpesaModal() {
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+    const payable = Math.max(0, subtotal - discount);
+    const mpesaVal = parseFloat(document.getElementById('mpesaInput').value) || 0;
+    const amount = mpesaVal > 0 ? mpesaVal : payable;
+
+    document.getElementById('mpesaModalAmount').textContent = "{{ tenant_currency }} " + amount.toFixed(2);
+    document.getElementById('mpesaPhoneInput').value = '';
+
+    // Reset steps
+    document.getElementById('mpesaStep1').style.display = 'block';
+    document.getElementById('mpesaStep2').style.display = 'none';
+    document.getElementById('mpesaStep3').style.display = 'none';
+
+    const modal = document.getElementById('mpesaModal');
+    modal.style.display = 'flex';
+  }
+
+  function closeMpesaModal() {
+    document.getElementById('mpesaModal').style.display = 'none';
+    if (mpesaPollTimer) { clearInterval(mpesaPollTimer); mpesaPollTimer = null; }
+  }
+
+  function sendStkPush() {
+    const phone = document.getElementById('mpesaPhoneInput').value.trim();
+    if (!phone) { alert('Please enter a phone number.'); return; }
+
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+    const payable = Math.max(0, subtotal - discount);
+    const mpesaVal = parseFloat(document.getElementById('mpesaInput').value) || 0;
+    const amount = mpesaVal > 0 ? mpesaVal : payable;
+
+    const btn = document.getElementById('stkPushBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    fetch("{{ url_for('pos.mpesa_stk_push') }}", {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ phone: phone, amount: amount })
+    })
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = 'Send STK Push to Phone';
+
+      if (!data.success) {
+        alert(data.message || 'Failed to initiate STK Push.');
+        return;
+      }
+
+      activeMpesaCheckoutId = data.checkout_id;
+
+      // Move to step 2
+      document.getElementById('mpesaStep1').style.display = 'none';
+      document.getElementById('mpesaStep2').style.display = 'block';
+
+      // Show simulation controls if in simulate mode
+      if (data.simulate) {
+        document.getElementById('mpesaSimControls').style.display = 'block';
+      } else {
+        document.getElementById('mpesaSimControls').style.display = 'none';
+        // Start polling for real API result
+        startMpesaPolling();
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.textContent = 'Send STK Push to Phone';
+      alert('Network error. Please try again.');
+      console.error(err);
+    });
+  }
+
+  function startMpesaPolling() {
+    mpesaPollTimer = setInterval(() => {
+      if (!activeMpesaCheckoutId) return;
+
+      fetch("{{ url_for('pos.mpesa_query_status') }}?checkout_id=" + encodeURIComponent(activeMpesaCheckoutId))
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'success') {
+            clearInterval(mpesaPollTimer);
+            mpesaPollTimer = null;
+            handleMpesaResult('success', data.receipt, data.amount, data.phone);
+          } else if (data.status === 'failed' || data.status === 'cancelled') {
+            clearInterval(mpesaPollTimer);
+            mpesaPollTimer = null;
+            handleMpesaResult(data.status, null, null, null);
+          }
+        })
+        .catch(() => {});
+    }, 3000);
+  }
+
+  function simulateCallback(outcome) {
+    fetch("{{ url_for('pos.mpesa_simulate_callback') }}", {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ checkout_id: activeMpesaCheckoutId, outcome: outcome })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        // Now query for the result
+        fetch("{{ url_for('pos.mpesa_query_status') }}?checkout_id=" + encodeURIComponent(activeMpesaCheckoutId))
+          .then(r => r.json())
+          .then(result => {
+            handleMpesaResult(result.status, result.receipt, result.amount, result.phone);
+          });
+      }
+    })
+    .catch(err => console.error(err));
+  }
+
+  function handleMpesaResult(status, receipt, amount, phone) {
+    document.getElementById('mpesaStep2').style.display = 'none';
+    document.getElementById('mpesaStep3').style.display = 'block';
+
+    const iconEl = document.getElementById('mpesaResultIcon');
+    const titleEl = document.getElementById('mpesaResultTitle');
+    const subEl = document.getElementById('mpesaResultSub');
+    const receiptEl = document.getElementById('mpesaReceiptDisplay');
+
+    if (status === 'success') {
+      iconEl.textContent = '✅';
+      titleEl.textContent = 'Payment Received!';
+      titleEl.style.color = 'var(--color-success)';
+      subEl.textContent = 'M-Pesa payment was confirmed successfully.';
+      receiptEl.textContent = 'M-Pesa Code: ' + (receipt || 'N/A');
+
+      // Auto-fill checkout fields
+      if (amount) {
+        document.getElementById('mpesaInput').value = parseFloat(amount).toFixed(2);
+      }
+      if (phone) {
+        document.getElementById('mpesaPhoneHidden').value = phone;
+      }
+      if (receipt) {
+        document.getElementById('mpesaReceiptHidden').value = receipt;
+      }
+      document.getElementById('mpesaCheckoutIdHidden').value = activeMpesaCheckoutId || '';
+
+      updatePaymentStatus();
+    } else if (status === 'failed') {
+      iconEl.textContent = '❌';
+      titleEl.textContent = 'Payment Failed';
+      titleEl.style.color = 'var(--color-error)';
+      subEl.textContent = 'Insufficient funds or the request was rejected.';
+      receiptEl.textContent = '';
+    } else {
+      iconEl.textContent = '⚠️';
+      titleEl.textContent = 'Payment Cancelled';
+      titleEl.style.color = 'var(--color-warning)';
+      subEl.textContent = 'The customer cancelled or did not respond.';
+      receiptEl.textContent = '';
+    }
+  }
+</script>
+
+<!-- Keyboard shortcut hint bar -->
+<div style="position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a; color: #94a3b8; font-size: 11px; padding: 6px 24px; display: flex; gap: 20px; z-index: 50;">
+  <span><kbd style="background:#1e293b; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px;">F2</kbd> Search</span>
+  <span><kbd style="background:#1e293b; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px;">F4</kbd> Discount</span>
+  <span><kbd style="background:#1e293b; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px;">F6</kbd> Cash</span>
+  <span><kbd style="background:#1e293b; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px;">F8</kbd> Complete Sale</span>
+  <span><kbd style="background:#1e293b; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px;">ESC</kbd> Clear Cart</span>
+  <span style="margin-left: auto;">Barcode scanner: scan → auto-adds to cart</span>
+</div>
+{% endblock %}

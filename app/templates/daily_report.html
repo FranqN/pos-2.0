@@ -1,0 +1,464 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<style>
+  .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+  .page-header h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; margin: 0; }
+  .page-header .page-sub { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+  .page-header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .kpi-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 22px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--color-primary-gradient);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-premium); }
+  .kpi-card:hover::before { opacity: 1; }
+
+  .kpi-card .kpi-val {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    color: var(--color-primary);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .kpi-card .kpi-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .kpi-card .kpi-sub {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 2px;
+  }
+
+  .report-section { margin-bottom: 24px; }
+  .report-section h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-main);
+    letter-spacing: -0.01em;
+  }
+
+  .progress-container { display: flex; flex-direction: column; gap: 12px; }
+  .progress-item { display: flex; flex-direction: column; gap: 5px; }
+
+  .progress-bar-bg {
+    background: var(--bg-primary);
+    border-radius: 9999px;
+    height: 7px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: var(--color-primary-gradient);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .progress-details { display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; color: var(--text-main); }
+
+  .filter-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 18px;
+    padding: 18px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+  }
+
+  .filter-group { display: flex; flex-direction: column; gap: 5px; }
+  .filter-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .filter-group select, .filter-group input { padding: 9px 12px; font-size: 13px; }
+
+  .anomaly-card {
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .anomaly-card.warning { background: var(--color-warning-bg); color: var(--color-warning-text); border-color: var(--color-warning-border); }
+  .anomaly-card.danger { background: var(--color-error-bg); color: var(--color-error-text); border-color: var(--color-error-border); }
+
+  .audit-log-list { display: flex; flex-direction: column; gap: 10px; }
+  .audit-log-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .audit-log-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .audit-log-meta { color: var(--text-muted); font-size: 11px; display: flex; justify-content: space-between; }
+
+  /* Pagination controls styling */
+  .pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+  }
+  .pagination-info {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .pagination-btn-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  @media (max-width: 1000px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .filter-form { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Daily Reports Dashboard</h1>
+    <div class="page-sub">Real-time business audit, analytics &amp; transactions log.</div>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-secondary" href="{{ url_for('analytics.analytics_dashboard') }}">📈 Analytics</a>
+    <a class="btn" href="{{ url_for('pos.checkout') }}">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Sale
+    </a>
+  </div>
+</div>
+
+<!-- KPI Cards Summary -->
+<div class="kpi-row">
+  <div class="kpi-card">
+    <span class="kpi-title">Gross Sales (Today)</span>
+    <span class="kpi-val">{{ tenant_currency }} {{ "{:,.2f}".format(total_sales or 0) }}</span>
+    <span class="kpi-sub">Total sales made today</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-title">Profit Today</span>
+    <span class="kpi-val" style="color: var(--color-success);">{{ tenant_currency }} {{ "{:,.2f}".format(profit_today or 0) }}</span>
+    <span class="kpi-sub">Based on cost margins</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-title">Voids / Refunds</span>
+    <span class="kpi-val" style="color: var(--color-error);">{{ reverted_count }}</span>
+    <span class="kpi-sub">Reverted sales today</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-title">VAT Collected</span>
+    <span class="kpi-val">{{ tenant_currency }} {{ "{:,.2f}".format(vat_total or 0) }}</span>
+    <span class="kpi-sub">Est. VAT tax portion</span>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Left Side: Main Analytics & History -->
+  <div>
+    <div class="card report-section">
+      <h3>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        Payment Methods Split
+      </h3>
+      {% set payment_sum = cash_total + mpesa_total + card_total %}
+      <div class="progress-container">
+        <!-- Cash Progress -->
+        <div class="progress-item">
+          <div class="progress-details">
+            <span>Cash</span>
+            <span>{{ tenant_currency }} {{ "{:,.2f}".format(cash_total) }} ({{ "{:.1f}".format((cash_total / payment_sum * 100) if payment_sum > 0 else 0) }}%)</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: {{ (cash_total / payment_sum * 100) if payment_sum > 0 else 0 }}%; background: #10b981;"></div>
+          </div>
+        </div>
+        <!-- M-Pesa Progress -->
+        <div class="progress-item">
+          <div class="progress-details">
+            <span>M-Pesa</span>
+            <span>{{ tenant_currency }} {{ "{:,.2f}".format(mpesa_total) }} ({{ "{:.1f}".format((mpesa_total / payment_sum * 100) if payment_sum > 0 else 0) }}%)</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: {{ (mpesa_total / payment_sum * 100) if payment_sum > 0 else 0 }}%; background: #06b6d4;"></div>
+          </div>
+        </div>
+        <!-- Card Progress -->
+        <div class="progress-item">
+          <div class="progress-details">
+            <span>Card Payment</span>
+            <span>{{ tenant_currency }} {{ "{:,.2f}".format(card_total) }} ({{ "{:.1f}".format((card_total / payment_sum * 100) if payment_sum > 0 else 0) }}%)</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: {{ (card_total / payment_sum * 100) if payment_sum > 0 else 0 }}%; background: #6366f1;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card report-section">
+      <h3>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Cashier Performance Summary
+      </h3>
+      {% if cashier_breakdown|length == 0 %}
+        <div style="font-size: 13px; color: var(--text-muted)">No cashier sales recorded today.</div>
+      {% else %}
+        <table>
+          <thead>
+            <tr><th>Cashier Name</th><th style="text-align: right;">Sales Contribution</th></tr>
+          </thead>
+          <tbody>
+            {% for name, sales_sum in cashier_breakdown %}
+              <tr>
+                <td>{{ name }}</td>
+                <td style="text-align: right; font-weight: 600;">{{ tenant_currency }} {{ "{:,.2f}".format(sales_sum) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
+
+    <!-- Sales History Table -->
+    <div class="card report-section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;">Sales History Logs</h3>
+        <a class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" href="{{ url_for('reports.export_csv') }}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Export CSV Log
+        </a>
+      </div>
+
+      <!-- Filters Panel -->
+      <form class="filter-form" method="get" action="{{ url_for('reports.daily_report') }}">
+        <div class="filter-group">
+          <label>Date Filter</label>
+          <input type="date" name="date_filter" value="{{ date_filter }}">
+        </div>
+        <div class="filter-group">
+          <label>Cashier</label>
+          <select name="cashier_filter">
+            <option value="">All Cashiers</option>
+            {% for u in cashiers %}
+              <option value="{{ u.full_name }}" {% if cashier_filter == u.full_name %}selected{% endif %}>{{ u.full_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select name="status_filter">
+            <option value="">All Transactions</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+            <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
+            <option value="voided" {% if status_filter == 'voided' %}selected{% endif %}>Voided</option>
+          </select>
+        </div>
+        <button class="btn" type="submit">Apply</button>
+        <a class="btn btn-secondary" href="{{ url_for('reports.daily_report') }}">Clear</a>
+      </form>
+
+      {% if sales_history|length == 0 %}
+        <div style="text-align: center; color: var(--text-muted); padding: 40px 0;">No sales history found for the selected criteria.</div>
+      {% else %}
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Date</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Details</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in sales_history %}
+                <tr>
+                  <td style="font-weight: 600;">{{ s.sale_number }}</td>
+                  <td style="white-space: nowrap;">{{ s.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                  <td style="font-weight: 600;">{{ tenant_currency }} {{ "{:,.2f}".format(s.total) }}</td>
+                  <td>
+                    {% if s.status == 'active' %}
+                      <span class="badge badge-success">Active</span>
+                    {% elif s.status == 'refunded' %}
+                      <span class="badge badge-warning">Refunded</span>
+                    {% else %}
+                      <span class="badge badge-danger">Voided</span>
+                    {% endif %}
+                  </td>
+                  <td style="font-size: 12px; color: var(--text-muted);">
+                    {% for item in s.items %}
+                      {{ item.name_snapshot }} (x{{ item.quantity }})<br>
+                    {% endfor %}
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                      <a href="{{ url_for('receipt.view_receipt', sale_id=s.id) }}" class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;" target="_blank">🧾 Receipt</a>
+                      {% if s.status == 'active' %}
+                        <form method="post" action="{{ url_for('pos.refund_sale', sale_id=s.id) }}" onsubmit="return confirm('Refund this sale?');">
+                          <button class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;" type="submit">Refund</button>
+                        </form>
+                        <form method="post" action="{{ url_for('pos.void_sale', sale_id=s.id) }}" onsubmit="return confirm('Void this sale?');">
+                          <button class="btn btn-danger" style="font-size: 11px; padding: 4px 8px;" type="submit">Void</button>
+                        </form>
+                      {% else %}
+                        <span style="font-size: 11px; color: var(--text-muted);">Reverted</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-container">
+          <div class="pagination-info">
+            Showing Page {{ page }} of {{ total_pages }} (Total {{ total_history }} invoices)
+          </div>
+          <div class="pagination-btn-group">
+            {% if page > 1 %}
+              <a href="{{ url_for('reports.daily_report', page=page-1, date_filter=date_filter, cashier_filter=cashier_filter, status_filter=status_filter) }}" class="btn btn-secondary btn-sm">◀ Prev</a>
+            {% else %}
+              <button class="btn btn-secondary btn-sm" disabled>◀ Prev</button>
+            {% endif %}
+
+            {% if page < total_pages %}
+              <a href="{{ url_for('reports.daily_report', page=page+1, date_filter=date_filter, cashier_filter=cashier_filter, status_filter=status_filter) }}" class="btn btn-secondary btn-sm">Next ▶</a>
+            {% else %}
+              <button class="btn btn-secondary btn-sm" disabled>Next ▶</button>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right Side: Diagnostics, Low Stock, Audits -->
+  <div>
+    <!-- AI Anomalies alerts -->
+    <div class="card report-section" style="border-color: #fbcfe8;">
+      <h3 style="color: #db2777;">
+        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-7v2h2v-2h-2zm0-8v6h2V7h-2z"/></svg>
+        AI Security Threat Flags
+      </h3>
+      {% if anomalies|length == 0 %}
+        <div style="font-size: 12px; color: var(--text-muted)">No system threats or anomalies flagged in the last 24 hours.</div>
+      {% else %}
+        {% for a in anomalies %}
+          <div class="anomaly-card {{ a.severity }}">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+            <div>{{ a.message }}</div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Low Stock warning list -->
+    <div class="card report-section">
+      <h3>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        Critical Stock Reorders
+      </h3>
+      {% if low_stock_products|length == 0 %}
+        <div style="font-size: 12px; color: var(--text-muted)">All items are sufficiently stocked.</div>
+      {% else %}
+        <table>
+          <thead>
+            <tr><th>Product</th><th style="text-align: right;">Stock</th></tr>
+          </thead>
+          <tbody>
+            {% for lp in low_stock_products %}
+              <tr>
+                <td>{{ lp.name }}</td>
+                <td style="text-align: right; font-weight: 600; color: var(--color-error);">{{ lp.stock_on_hand }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
+
+    <!-- Administrative Audit Logs -->
+    <div class="card report-section">
+      <h3>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path></svg>
+        Audit Log History
+      </h3>
+      <div class="audit-log-list">
+        {% for log in audit_logs %}
+          <div class="audit-log-item">
+            <div style="font-weight: 600; font-size: 13px; color: var(--text-main);">{{ log.action }}</div>
+            <div style="color: var(--text-muted); font-size: 11px;">{{ log.detail }}</div>
+            <div class="audit-log-meta">
+              <span>By User ID: {{ log.created_by }}</span>
+              <span>{{ log.created_at.strftime('%m-%d %H:%M:%S') }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

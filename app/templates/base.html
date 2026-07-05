@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or 'Enterprise POS' }}</title>
+  <!-- Google Fonts Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ─── CSS Custom Properties (Light Mode) ─── */
+    :root {
+      --bg-primary: #f8fafc;
+      --bg-surface: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+
+      --color-primary: #4f46e5;
+      --color-primary-hover: #4338ca;
+      --color-primary-light: rgba(79, 70, 229, 0.08);
+      --color-primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+
+      --color-success: #10b981;
+      --color-success-bg: #ecfdf5;
+      --color-success-border: #a7f3d0;
+      --color-success-text: #065f46;
+
+      --color-error: #ef4444;
+      --color-error-bg: #fef2f2;
+      --color-error-border: #fca5a5;
+      --color-error-text: #991b1b;
+
+      --color-warning: #f59e0b;
+      --color-warning-bg: #fffbeb;
+      --color-warning-border: #fde68a;
+      --color-warning-text: #92400e;
+
+      --border-color: #e2e8f0;
+      --border-color-hover: #cbd5e1;
+
+      /* Topbar */
+      --topbar-bg: rgba(15, 23, 42, 0.96);
+      --topbar-border: rgba(255, 255, 255, 0.08);
+
+      /* Layout & Shadows */
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.06), 0 4px 12px -4px rgba(0, 0, 0, 0.06);
+      --shadow-premium: 0 20px 40px -15px rgba(15, 23, 42, 0.10);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+
+      /* Transitions */
+      --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ─── Dark Mode ─── */
+    [data-theme="dark"] {
+      --bg-primary: #0f172a;
+      --bg-surface: #1e293b;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-light: #64748b;
+
+      --color-primary-light: rgba(99, 102, 241, 0.15);
+
+      --color-success-bg: #064e3b;
+      --color-success-border: #065f46;
+      --color-success-text: #6ee7b7;
+
+      --color-error-bg: #450a0a;
+      --color-error-border: #7f1d1d;
+      --color-error-text: #fca5a5;
+
+      --color-warning-bg: #451a03;
+      --color-warning-border: #78350f;
+      --color-warning-text: #fcd34d;
+
+      --border-color: #334155;
+      --border-color-hover: #475569;
+
+      --topbar-bg: rgba(15, 23, 42, 0.99);
+      --topbar-border: rgba(255, 255, 255, 0.06);
+
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
+      --shadow-premium: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.3); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.5); }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      margin-top: 0;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+
+    /* ─── Topbar ─── */
+    .topbar {
+      background: var(--topbar-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--topbar-border);
+      color: #ffffff;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      gap: 10px;
+      transition: var(--transition-normal);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #ffffff;
+      transition: var(--transition-fast);
+      flex-shrink: 0;
+    }
+
+    .brand:hover { opacity: 0.9; }
+
+    .brand img {
+      height: 36px;
+      width: auto;
+      object-fit: contain;
+      background: #ffffff;
+      border-radius: var(--radius-sm);
+      padding: 3px;
+    }
+
+    .brand-icon {
+      background: var(--color-primary-gradient);
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+      white-space: nowrap;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-subtitle {
+      font-size: 9px;
+      color: #64748b;
+      font-weight: 500;
+      white-space: nowrap;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .nav-link {
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 7px 13px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition-fast);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+    }
+
+    .nav-link:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    .nav-link.active {
+      color: #ffffff;
+      background: var(--color-primary-gradient);
+      box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+    }
+
+    .nav-link.logout {
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .nav-link.logout:hover {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.6);
+      color: #ffffff;
+    }
+
+    /* Low-stock badge on nav */
+    .stock-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    /* Dark mode toggle button */
+    .theme-toggle {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #94a3b8;
+      border-radius: var(--radius-sm);
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      flex-shrink: 0;
+    }
+
+    .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .menu-toggle {
+      display: none;
+      background: rgba(255, 255, 255, 0.07);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+      padding: 7px 12px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 12px;
+      transition: var(--transition-fast);
+    }
+
+    .menu-toggle:hover { background: rgba(255, 255, 255, 0.12); }
+
+    .mobile-nav {
+      display: none;
+      width: 100%;
+      background: rgba(15, 23, 42, 0.99);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      padding: 8px;
+    }
+
+    .mobile-nav.open { display: block; }
+    .mobile-nav .nav-link {
+      display: flex;
+      width: -webkit-fill-available;
+      padding: 10px 14px;
+      margin: 2px 0;
+    }
+
+    /* ─── Main Layout ─── */
+    .wrap {
+      flex: 1;
+      padding: 28px 24px;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: -webkit-fill-available;
+      width: -moz-available;
+      width: stretch;
+      animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Card ─── */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition-normal);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-premium);
+      border-color: var(--border-color-hover);
+    }
+
+    /* ─── Buttons ─── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--color-primary-gradient);
+      color: #ffffff;
+      border: 0;
+      border-radius: var(--radius-sm);
+      padding: 10px 20px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      text-decoration: none;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+    }
+
+    .btn:hover {
+      opacity: 0.93;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+    }
+
+    .btn:active { transform: translateY(0); }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: #475569;
+      box-shadow: 0 2px 4px rgba(71, 85, 105, 0.15);
+    }
+    .btn-secondary:hover { background: #334155; }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+      box-shadow: 0 2px 8px rgba(244, 63, 94, 0.2);
+    }
+    .btn-danger:hover { box-shadow: 0 4px 16px rgba(244, 63, 94, 0.3); }
+
+    .btn-success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+    }
+    .btn-success:hover { box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3); }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    /* ─── Form Controls ─── */
+    input, select, textarea {
+      font-family: 'Inter', sans-serif;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      color: var(--text-main);
+      background-color: var(--bg-surface);
+      outline: none;
+      transition: var(--transition-fast);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12), inset 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+
+    input::placeholder, textarea::placeholder { color: var(--text-light); }
+
+    /* ─── Tables ─── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    th {
+      background: var(--bg-primary);
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      padding: 12px 16px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+      transition: background-color var(--transition-fast);
+    }
+
+    tr:hover td { background-color: var(--bg-primary); }
+
+    /* ─── Flash Messages ─── */
+    .flash {
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-md);
+      animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .flash.success {
+      background-color: var(--color-success-bg);
+      color: var(--color-success-text);
+      border-color: var(--color-success-border);
+    }
+
+    .flash.error {
+      background-color: var(--color-error-bg);
+      color: var(--color-error-text);
+      border-color: var(--color-error-border);
+    }
+
+    .flash.warning {
+      background-color: var(--color-warning-bg);
+      color: var(--color-warning-text);
+      border-color: var(--color-warning-border);
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* ─── Badges ─── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .badge-danger  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .badge-warning { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+    .badge-info    { background: #e0f2fe; color: #075985; border: 1px solid #7dd3fc; }
+    .badge-muted   { background: var(--bg-primary); color: var(--text-muted); border: 1px solid var(--border-color); }
+
+    [data-theme="dark"] .badge-success { background: #14532d; color: #86efac; border-color: #166534; }
+    [data-theme="dark"] .badge-danger  { background: #450a0a; color: #fca5a5; border-color: #7f1d1d; }
+    [data-theme="dark"] .badge-warning { background: #422006; color: #fcd34d; border-color: #78350f; }
+    [data-theme="dark"] .badge-info    { background: #0c4a6e; color: #7dd3fc; border-color: #075985; }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 1024px) {
+      .nav-links { gap: 2px; }
+      .nav-link { padding: 6px 10px; font-size: 12px; }
+    }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .menu-toggle { display: inline-flex; }
+      .topbar { flex-wrap: wrap; padding: 12px 16px; }
+      .wrap { padding: 18px 14px; }
+    }
+
+    @media (max-width: 360px) {
+      .brand-title, .brand-subtitle { white-space: normal; }
+    }
+  </style>
+
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="topbar">
+    <a href="{{ url_for('analytics.home_dashboard') }}" class="brand">
+      {% if tenant_logo %}
+        <img src="{{ url_for('static', filename='uploads/' ~ tenant_logo) }}" alt="logo" />
+      {% else %}
+        <div class="brand-icon">P</div>
+      {% endif %}
+      <div>
+        <div class="brand-title">{{ tenant_name or 'Enterprise POS' }}</div>
+        <div class="brand-subtitle">{{ tenant_currency or 'KES' }} · Smart POS</div>
+      </div>
+    </a>
+
+    <div class="nav-links">
+      {% if current_user.is_authenticated %}
+        <a class="nav-link {% if request.endpoint == 'analytics.home_dashboard' %}active{% endif %}" href="{{ url_for('analytics.home_dashboard') }}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </a>
+        <a class="nav-link {% if request.endpoint == 'pos.checkout' %}active{% endif %}" href="{{ url_for('pos.checkout') }}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          Checkout
+        </a>
+        <a class="nav-link {% if request.endpoint == 'products.list_products' %}active{% endif %}" href="{{ url_for('products.list_products') }}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          Products
+        </a>
+        <a class="nav-link {% if request.endpoint == 'customers.list_customers' %}active{% endif %}" href="{{ url_for('customers.list_customers') }}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Customers
+        </a>
+        {% if current_user.role in ['owner', 'manager', 'stock_manager'] %}
+          <a class="nav-link {% if request.endpoint and request.endpoint.startswith('stock.') %}active{% endif %}" href="{{ url_for('stock.adjustments') }}" style="position:relative;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            Stock
+            {% if low_stock_count > 0 %}
+              <span class="stock-badge">{{ low_stock_count }}</span>
+            {% endif %}
+          </a>
+        {% endif %}
+        {% if current_user.role in ['owner', 'manager'] %}
+          <a class="nav-link {% if request.endpoint == 'analytics.analytics_dashboard' %}active{% endif %}" href="{{ url_for('analytics.analytics_dashboard') }}">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Analytics
+          </a>
+        {% endif %}
+        <a class="nav-link {% if request.endpoint == 'reports.daily_report' %}active{% endif %}" href="{{ url_for('reports.daily_report') }}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Reports
+        </a>
+        {% if current_user.role in ['owner', 'manager'] %}
+          <a class="nav-link {% if request.endpoint == 'tenant.dashboard' %}active{% endif %}" href="{{ url_for('tenant.dashboard') }}">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Settings
+          </a>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    <div class="nav-right">
+      <!-- Dark mode toggle -->
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle dark/light mode">
+        <svg id="iconMoon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg id="iconSun" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+
+      {% if current_user.is_authenticated %}
+        <a class="nav-link logout" href="{{ url_for('auth.logout') }}" title="Logout {{ current_user.full_name }}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Logout
+        </a>
+      {% endif %}
+
+      <button class="menu-toggle" type="button" aria-label="Open menu" onclick="toggleMobileNav()">☰ Menu</button>
+    </div>
+  </div>
+
+  <!-- Mobile nav dropdown -->
+  <div class="mobile-nav" id="mobileNav">
+    {% if current_user.is_authenticated %}
+      <a class="nav-link" href="{{ url_for('analytics.home_dashboard') }}">Dashboard</a>
+      <a class="nav-link" href="{{ url_for('pos.checkout') }}">Checkout</a>
+      <a class="nav-link" href="{{ url_for('products.list_products') }}">Products</a>
+      <a class="nav-link" href="{{ url_for('customers.list_customers') }}">Customers</a>
+      {% if current_user.role in ['owner', 'manager', 'stock_manager'] %}
+        <a class="nav-link" href="{{ url_for('stock.adjustments') }}">
+          Stock {% if low_stock_count > 0 %}({{ low_stock_count }} low){% endif %}
+        </a>
+      {% endif %}
+      {% if current_user.role in ['owner', 'manager'] %}
+        <a class="nav-link" href="{{ url_for('analytics.analytics_dashboard') }}">Analytics</a>
+      {% endif %}
+      <a class="nav-link" href="{{ url_for('reports.daily_report') }}">Reports</a>
+      {% if current_user.role in ['owner', 'manager'] %}
+        <a class="nav-link" href="{{ url_for('tenant.dashboard') }}">Settings</a>
+      {% endif %}
+      <a class="nav-link logout" href="{{ url_for('auth.logout') }}">Logout</a>
+    {% endif %}
+  </div>
+
+  <div class="wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <div class="flash {{ category }}">
+            {% if category == 'success' %}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            {% elif category == 'warning' %}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            {% else %}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {% endif %}
+            <span>{{ msg }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <script>
+    // ─── Mobile Nav Toggle ───
+    function toggleMobileNav() {
+      document.getElementById('mobileNav').classList.toggle('open');
+    }
+    document.addEventListener('click', function(e) {
+      const nav = document.getElementById('mobileNav');
+      if (!nav) return;
+      if (nav.classList.contains('open') && e.target && e.target.tagName === 'A') {
+        nav.classList.remove('open');
+      }
+    });
+
+    // ─── Dark Mode ───
+    const htmlEl = document.documentElement;
+    const toggleBtn = document.getElementById('themeToggle');
+    const iconMoon = document.getElementById('iconMoon');
+    const iconSun = document.getElementById('iconSun');
+
+    function applyTheme(theme) {
+      htmlEl.setAttribute('data-theme', theme);
+      if (theme === 'dark') {
+        iconMoon.style.display = 'block';
+        iconSun.style.display = 'none';
+      } else {
+        iconMoon.style.display = 'none';
+        iconSun.style.display = 'block';
+      }
+    }
+
+    // Load saved preference
+    const savedTheme = localStorage.getItem('pos_theme') || 'light';
+    applyTheme(savedTheme);
+
+    toggleBtn.addEventListener('click', function() {
+      const current = htmlEl.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      localStorage.setItem('pos_theme', next);
+    });
+  </script>
+</body>
+</html>

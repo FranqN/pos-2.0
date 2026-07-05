@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block head %}
+<style>
+  .adj-grid { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+  .form-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .delta-controls { display: flex; gap: 8px; }
+  .delta-preset { padding: 8px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: #f1f5f9; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .delta-preset:hover { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+  .delta-preset.negative:hover { background: var(--color-error); border-color: var(--color-error); }
+  .movement-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border-color); gap: 12px; }
+  .movement-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .icon-plus { background: #ecfdf5; color: #059669; }
+  .icon-minus { background: #fef2f2; color: #dc2626; }
+  .movement-info { flex: 1; }
+  .movement-name { font-weight: 600; font-size: 13px; }
+  .movement-note { font-size: 12px; color: var(--text-muted); }
+  .movement-delta { font-weight: 700; font-size: 14px; }
+  .movement-delta.pos { color: var(--color-success); }
+  .movement-delta.neg { color: var(--color-error); }
+  @media (max-width: 900px) { .adj-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+  <div>
+    <h1 style="font-size: 26px; font-weight: 800; margin: 0; letter-spacing: -0.02em;">Stock Adjustments</h1>
+    <div style="color: var(--text-muted); font-size: 14px; margin-top: 2px;">Manually correct inventory counts with tracked movements</div>
+  </div>
+  <div style="display: flex; gap: 8px;">
+    <a href="{{ url_for('stock.purchases') }}" class="btn btn-secondary">Purchase Orders</a>
+    <a href="{{ url_for('stock.suppliers') }}" class="btn btn-secondary">Suppliers</a>
+    <a href="{{ url_for('stock.inventory') }}" class="btn">Inventory Report</a>
+  </div>
+</div>
+
+<div class="adj-grid">
+  <!-- Adjustment Form -->
+  <div class="card">
+    <h2 style="font-size: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+      New Stock Adjustment
+    </h2>
+    <form method="post" action="{{ url_for('stock.apply_adjustment') }}">
+      <div class="form-group">
+        <label>Product</label>
+        <select name="product_id" id="productSelect" required onchange="updateCurrentStock(this)">
+          <option value="">— Select a product —</option>
+          {% for p in products %}
+            <option value="{{ p.id }}" data-stock="{{ p.stock_on_hand }}">
+              {{ p.name }} (Stock: {{ p.stock_on_hand }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="background: #f8fafc; border-radius: 10px; padding: 14px; margin-bottom: 16px; display: none;" id="stockInfo">
+        <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Current Stock</div>
+        <div style="font-size: 24px; font-weight: 800; font-family: 'Outfit', sans-serif;" id="currentStockLabel">—</div>
+      </div>
+
+      <div class="form-group">
+        <label>Quantity Change (use negative to decrease)</label>
+        <input type="number" name="quantity_delta" id="deltaInput" placeholder="e.g. +20 or -5" required step="1">
+        <div class="delta-controls" style="margin-top: 6px;">
+          <button type="button" class="delta-preset" onclick="setDelta(1)">+1</button>
+          <button type="button" class="delta-preset" onclick="setDelta(5)">+5</button>
+          <button type="button" class="delta-preset" onclick="setDelta(10)">+10</button>
+          <button type="button" class="delta-preset" onclick="setDelta(50)">+50</button>
+          <button type="button" class="delta-preset negative" onclick="setDelta(-1)">-1</button>
+          <button type="button" class="delta-preset negative" onclick="setDelta(-5)">-5</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Reason / Note</label>
+        <select name="notes" id="reasonSelect" onchange="handleReasonChange(this)">
+          <option value="Manual stock count correction">Manual stock count correction</option>
+          <option value="Damaged / expired goods">Damaged / expired goods</option>
+          <option value="Goods received (informal)">Goods received (informal)</option>
+          <option value="Theft / loss adjustment">Theft / loss adjustment</option>
+          <option value="Transfer to another branch">Transfer to another branch</option>
+          <option value="custom">Custom reason...</option>
+        </select>
+        <input type="text" id="customReason" placeholder="Enter custom reason" style="display: none; margin-top: 8px;" name="notes_custom">
+      </div>
+
+      <button type="submit" class="btn" style="width: 100%; padding: 12px;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Apply Adjustment
+      </button>
+    </form>
+  </div>
+
+  <!-- Recent Adjustments -->
+  <div class="card">
+    <h2 style="font-size: 16px; margin-bottom: 16px;">Recent Adjustments</h2>
+    {% if recent_movements|length == 0 %}
+      <div style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+        No stock adjustments recorded yet.
+      </div>
+    {% else %}
+      {% for m in recent_movements %}
+        <div class="movement-row">
+          <div class="movement-icon {% if m.quantity_delta > 0 %}icon-plus{% else %}icon-minus{% endif %}">
+            {% if m.quantity_delta > 0 %}▲{% else %}▼{% endif %}
+          </div>
+          <div class="movement-info">
+            <div class="movement-name">{{ m.product.name if m.product else 'Unknown' }}</div>
+            <div class="movement-note">{{ m.notes or '—' }}</div>
+            <div class="movement-note" style="margin-top: 2px;">{{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+          </div>
+          <div class="movement-delta {% if m.quantity_delta > 0 %}pos{% else %}neg{% endif %}">
+            {{ "%+d" % m.quantity_delta }}
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function updateCurrentStock(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    const stock = opt.getAttribute('data-stock');
+    const info = document.getElementById('stockInfo');
+    if (stock !== null && sel.value) {
+      document.getElementById('currentStockLabel').textContent = stock + ' units';
+      info.style.display = 'block';
+    } else {
+      info.style.display = 'none';
+    }
+  }
+
+  function setDelta(n) {
+    document.getElementById('deltaInput').value = n;
+  }
+
+  function handleReasonChange(sel) {
+    const custom = document.getElementById('customReason');
+    const notesSel = document.getElementById('reasonSelect');
+    if (sel.value === 'custom') {
+      custom.style.display = 'block';
+      // Override the name so custom reason is submitted
+      notesSel.name = '_notes_ignore';
+      custom.name = 'notes';
+    } else {
+      custom.style.display = 'none';
+      notesSel.name = 'notes';
+      custom.name = 'notes_custom';
+    }
+  }
+</script>
+{% endblock %}

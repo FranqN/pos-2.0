@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<style>
+  .customer-container {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .form-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+  .form-group input, .form-group textarea { width: 100%; box-sizing: border-box; }
+  .customer-table-card { display: flex; flex-direction: column; gap: 16px; }
+  .customer-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .table-search-input { width: 250px; }
+  .cust-actions { display: flex; gap: 4px; align-items: center; }
+  .cust-actions form { display: inline; }
+  .edit-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
+  .edit-modal.open { display: flex; }
+  .edit-modal-content { background: #fff; border-radius: var(--radius-lg); padding: 28px; width: 420px; max-width: 90vw; box-shadow: 0 25px 50px rgba(0,0,0,0.2); }
+  @media (max-width: 900px) { .customer-container { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+  <div>
+    <h1 style="font-size: 26px; font-weight: 800; margin: 0; letter-spacing: -0.02em;">Customer Accounts</h1>
+    <div style="color: var(--text-muted); font-size: 14px;">Manage customer profiles, credit balances, and purchase history</div>
+  </div>
+</div>
+
+<div class="customer-container">
+  <!-- Left Side: Add Customer -->
+  <div class="card" style="position: sticky; top: 90px;">
+    <h2 style="margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Register Customer</h2>
+    <form method="post" action="{{ url_for('customers.create_customer') }}">
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input name="name" type="text" placeholder="e.g. Jane Mwangi" required>
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input name="phone" type="text" placeholder="e.g. 0712345678">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input name="email" type="email" placeholder="customer@example.com">
+      </div>
+      <div class="form-group">
+        <label>Credit Limit (KES)</label>
+        <input name="credit_limit" type="number" step="0.01" value="0" placeholder="Max credit allowed">
+      </div>
+      <div class="form-group">
+        <label>Notes / Credit Terms</label>
+        <textarea name="notes" rows="3" placeholder="Additional notes"></textarea>
+      </div>
+      <button class="btn" type="submit" style="width: 100%; padding: 12px;">Register Customer</button>
+    </form>
+  </div>
+
+  <!-- Right Side: Customer List -->
+  <div class="card customer-table-card">
+    <div class="customer-header">
+      <h2 style="margin: 0;">Registered Accounts ({{ customers|length }})</h2>
+      <form method="get" action="{{ url_for('customers.list_customers') }}" style="display: flex; gap: 8px;">
+        <input class="table-search-input" name="q" type="text" placeholder="Search by name or phone..." value="{{ search or '' }}">
+        <button class="btn" type="submit" style="padding: 9px 16px;">Search</button>
+        {% if search %}
+          <a href="{{ url_for('customers.list_customers') }}" class="btn btn-secondary" style="padding: 9px 14px; font-size: 12px;">Clear</a>
+        {% endif %}
+      </form>
+    </div>
+
+    {% if customers|length == 0 %}
+      <div style="text-align: center; color: var(--text-muted); padding: 60px 0;">
+        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom: 12px; opacity: 0.4;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+        <div style="font-weight: 600;">No customers found</div>
+      </div>
+    {% else %}
+      <div style="overflow-x: auto;">
+        <table id="customerTable">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Contact</th>
+              <th style="text-align: right;">Balance</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in customers %}
+              <tr>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width:36px; height:36px; border-radius:50%; background: linear-gradient(135deg, #4f46e5, #7c3aed); display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:14px; flex-shrink:0;">
+                      {{ c.name[0].upper() }}
+                    </div>
+                    <div>
+                      <div style="font-weight: 600;">{{ c.name }}</div>
+                      {% if c.notes %}<div style="font-size: 11px; color: var(--text-muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ c.notes }}</div>{% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td style="font-size: 13px;">
+                  {% if c.phone %}<div>📞 {{ c.phone }}</div>{% endif %}
+                  {% if c.email %}<div style="color: var(--text-muted);">✉️ {{ c.email }}</div>{% endif %}
+                  {% if not c.phone and not c.email %}<span style="color: var(--text-muted);">—</span>{% endif %}
+                </td>
+                <td style="text-align: right; font-weight: 700; color: {% if c.balance > 0 %}var(--color-error){% else %}var(--color-success){% endif %};">
+                  KES {{ "{:,.2f}".format(c.balance) }}
+                </td>
+                <td>
+                  {% if c.balance > 0 %}
+                    <span class="badge badge-warning">Credit Due</span>
+                  {% else %}
+                    <span class="badge badge-success">Clear</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="cust-actions">
+                    <a href="{{ url_for('customers.customer_history', customer_id=c.id) }}" class="btn btn-secondary" style="font-size: 11px; padding: 4px 10px;">History</a>
+                    <button class="btn btn-secondary" style="font-size: 11px; padding: 4px 10px;" type="button"
+                      onclick="openEditModal({{ c.id }}, '{{ c.name|e }}', '{{ c.phone or ''|e }}', '{{ c.email or ''|e }}', '{{ c.notes or ''|e }}', '{{ c.credit_limit or 0 }}')">Edit</button>
+                    <form method="post" action="{{ url_for('customers.delete_customer', customer_id=c.id) }}"
+                          onsubmit="return confirm('Delete {{ c.name }}?')">
+                      <button class="btn btn-danger" style="font-size: 11px; padding: 4px 10px;" type="submit">Del</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Edit Customer Modal -->
+<div class="edit-modal" id="editModal" onclick="if(event.target===this)closeEditModal()">
+  <div class="edit-modal-content">
+    <h2 style="margin-bottom: 18px;">Edit Customer</h2>
+    <form method="post" id="editForm">
+      <div class="form-group"><label>Name</label><input name="name" id="editName" required></div>
+      <div class="form-group"><label>Phone</label><input name="phone" id="editPhone"></div>
+      <div class="form-group"><label>Email</label><input name="email" id="editEmail" type="email"></div>
+      <div class="form-group"><label>Credit Limit (KES)</label><input name="credit_limit" id="editCreditLimit" type="number" step="0.01"></div>
+      <div class="form-group"><label>Notes</label><textarea name="notes" id="editNotes" rows="3"></textarea></div>
+      <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <button class="btn" type="submit" style="flex: 1;">Save Changes</button>
+        <button class="btn btn-secondary" type="button" onclick="closeEditModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openEditModal(id, name, phone, email, notes, creditLimit) {
+    document.getElementById('editForm').action = `/customers/${id}/edit`;
+    document.getElementById('editName').value = name;
+    document.getElementById('editPhone').value = phone;
+    document.getElementById('editEmail').value = email;
+    document.getElementById('editNotes').value = notes;
+    document.getElementById('editCreditLimit').value = creditLimit;
+    document.getElementById('editModal').classList.add('open');
+  }
+  function closeEditModal() {
+    document.getElementById('editModal').classList.remove('open');
+  }
+</script>
+{% endblock %}

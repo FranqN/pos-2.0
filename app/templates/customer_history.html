@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block head %}
+<style>
+  .history-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .customer-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #7c3aed); display: flex; align-items: center; justify-content: center; font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; box-shadow: var(--shadow-sm); }
+  .stat-val { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 800; color: var(--color-primary); }
+  .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-top: 2px; }
+  .settle-form { display: flex; gap: 8px; align-items: center; }
+  .settle-form input { width: 120px; }
+  @media (max-width: 700px) { .stat-row { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="history-header">
+  <div class="customer-avatar">{{ customer.name[0].upper() }}</div>
+  <div>
+    <h1 style="font-size: 24px; font-weight: 800; margin: 0;">{{ customer.name }}</h1>
+    <div style="color: var(--text-muted); font-size: 14px; margin-top: 2px;">
+      {% if customer.phone %}📞 {{ customer.phone }}{% endif %}
+      {% if customer.email %}  ✉️ {{ customer.email }}{% endif %}
+    </div>
+  </div>
+  <div style="margin-left: auto;">
+    <a href="{{ url_for('customers.list_customers') }}" class="btn btn-secondary">← All Customers</a>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="stat-val">{{ sales|length }}</div>
+    <div class="stat-label">Total Transactions</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val">KES {{ "{:,.2f}".format(total_spent) }}</div>
+    <div class="stat-label">Total Spent (Active)</div>
+  </div>
+  <div class="stat-card" style="{% if customer.balance > 0 %}border-color: #fca5a5;{% endif %}">
+    <div class="stat-val {% if customer.balance > 0 %}{{ '' }}{% endif %}" style="{% if customer.balance > 0 %}color: var(--color-error);{% endif %}">
+      KES {{ "{:,.2f}".format(customer.balance) }}
+    </div>
+    <div class="stat-label">Outstanding Balance</div>
+    {% if customer.balance > 0 %}
+      <form class="settle-form" method="post" action="{{ url_for('customers.settle_balance', customer_id=customer.id) }}" style="margin-top: 10px;">
+        <input type="number" name="amount" placeholder="Amount" step="0.01" min="0.01" max="{{ customer.balance }}" required>
+        <button type="submit" class="btn btn-success" style="padding: 8px 14px; font-size: 12px;">Settle</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if customer.notes %}
+<div class="card" style="margin-bottom: 24px; padding: 14px 18px;">
+  <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Notes</div>
+  <div style="font-size: 14px;">{{ customer.notes }}</div>
+</div>
+{% endif %}
+
+<!-- Transactions -->
+<div class="card">
+  <h2 style="font-size: 16px; margin-bottom: 16px;">Purchase History</h2>
+  {% if sales|length == 0 %}
+    <div style="text-align: center; color: var(--text-muted); padding: 60px 0;">No transactions recorded for this customer.</div>
+  {% else %}
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Invoice</th>
+            <th>Date</th>
+            <th>Items</th>
+            <th style="text-align: right;">Total</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Receipt</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sales %}
+            <tr>
+              <td style="font-weight: 600; color: var(--color-primary);">{{ s.sale_number }}</td>
+              <td style="white-space: nowrap; font-size: 13px;">{{ s.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td style="font-size: 12px; color: var(--text-muted); max-width: 200px;">
+                {% for item in s.items %}
+                  {{ item.name_snapshot }}{% if item.quantity > 1 %} ×{{ item.quantity }}{% endif %}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+              </td>
+              <td style="text-align: right; font-weight: 700;">KES {{ "{:,.2f}".format(s.total) }}</td>
+              <td>
+                <div style="font-size: 12px;">
+                  {% if s.cash_amount > 0 %}<span style="color:#059669;">Cash: {{ "{:,.0f}".format(s.cash_amount) }}</span><br>{% endif %}
+                  {% if s.mpesa_amount > 0 %}<span style="color:#2563eb;">M-Pesa: {{ "{:,.0f}".format(s.mpesa_amount) }}</span><br>{% endif %}
+                  {% if s.card_amount > 0 %}<span style="color:#7c3aed;">Card: {{ "{:,.0f}".format(s.card_amount) }}</span>{% endif %}
+                </div>
+              </td>
+              <td>
+                {% if s.status == 'active' %}
+                  {% if s.payment_status == 'paid' %}<span class="badge badge-success">Paid</span>
+                  {% elif s.payment_status == 'partial' %}<span class="badge badge-warning">Partial</span>
+                  {% else %}<span class="badge badge-danger">Unpaid</span>{% endif %}
+                {% elif s.status == 'refunded' %}
+                  <span class="badge badge-warning">Refunded</span>
+                {% else %}
+                  <span class="badge badge-danger">Voided</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('receipt.view_receipt', sale_id=s.id) }}" class="btn btn-secondary" style="font-size: 11px; padding: 5px 10px;" target="_blank">🧾 Receipt</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
